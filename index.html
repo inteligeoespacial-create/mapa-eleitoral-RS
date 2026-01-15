@@ -35,6 +35,77 @@
             background-color: rgba(255,255,255,.4) !important;
             padding: 2px !important;
         } 
+        #sidebar-votos {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 350px;
+    height: 100%;
+    background-color: white;
+    z-index: 3000; /* Garante que fique acima do mapa */
+    box-shadow: -3px 0 10px rgba(0,0,0,0.3);
+    overflow-y: auto; /* Barra de rolagem */
+    padding: 20px;
+    display: none; /* Escondida até alguém pesquisar */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+.btn-fechar { padding: 5px 10px; cursor: pointer; float: right; }
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 13px; }
+th { background-color: #f8f8f8; font-weight: bold; }
+
+/* Estilos do gráfico de barras */
+#grafico-container {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 15px 0;
+    padding-bottom: 10px;
+    background-color: #fafafa;
+    border-radius: 5px;
+}
+#grafico-barras {
+    display: flex;
+    align-items: flex-end;
+    height: 220px;
+    padding: 10px 15px 40px 15px;
+    min-width: fit-content;
+    gap: 8px;
+}
+.barra-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+    max-width: 80px;
+}
+.barra-valor {
+    font-size: 10px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 3px;
+    white-space: nowrap;
+}
+.barra {
+    width: 45px;
+    background: linear-gradient(180deg, #4a90d9 0%, #2c5aa0 100%);
+    border-radius: 3px 3px 0 0;
+    transition: background 0.2s;
+}
+.barra:hover {
+    background: linear-gradient(180deg, #5ba0e9 0%, #3c6ab0 100%);
+}
+.barra-nome {
+    font-size: 9px;
+    color: #555;
+    text-align: center;
+    margin-top: 5px;
+    word-wrap: break-word;
+    max-width: 70px;
+    line-height: 1.2;
+    height: 30px;
+    overflow: hidden;
+}
         </style>
 
         <style>
@@ -54,6 +125,26 @@
                 <div id="popup-content"></div>
             </div>
         </div>
+        <div id="sidebar-votos">
+    <button class="btn-fechar" onclick="document.getElementById('sidebar-votos').style.display='none'">Fechar X</button>
+    <h2 style="font-size: 18px;">Votos em: <span id="label-municipio"></span></h2>
+    
+    <!-- Gráfico de barras -->
+    <div id="grafico-container">
+        <div id="grafico-barras"></div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Candidato</th>
+                <th>Votos</th>
+            </tr>
+        </thead>
+        <tbody id="corpo-tabela">
+            </tbody>
+    </table>
+</div>
         <script src="resources/qgis2web_expressions.js"></script>
         <script src="./resources/functions.js"></script>
         <script src="./resources/ol.js"></script>
@@ -65,6 +156,89 @@
         <script src="styles/locaisdevotao_1_style.js"></script><script src="styles/setorescensitarios_2_style.js"></script><script src="styles/RS_Municipios_2023_3_style.js"></script>
         <script src="./layers/layers.js" type="text/javascript"></script> 
         <script src="./resources/Autolinker.min.js"></script>
-        <script src="./resources/qgis2web.js"></script>        
+        <script src="./resources/qgis2web.js"></script> 
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  // Inicializa o cliente Supabase
+  const supabaseUrl = 'https://tkoddsmozspfolltmpyh.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrb2Rkc21venNwZm9sbHRtcHloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzE5MjEsImV4cCI6MjA4MzMwNzkyMX0.Oe-3Dr5lMES0NfaFIURV-_PvKkeI3wlhkN4yJ_6bnh8';
+  const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+  // Detecta a seleção no buscador do mapa
+  searchLayer.on('select', async function(e) {
+      const nomeMun = e.text.toUpperCase(); // Ex: "ACEGUÁ"
+      
+      console.log('Município selecionado:', nomeMun); // Debug
+      
+      // 1. Abre a barra lateral e limpa a tabela e gráfico
+      document.getElementById('sidebar-votos').style.display = 'block';
+      document.getElementById('label-municipio').innerText = e.text; // Mantém a grafia original do mapa no título
+      const tbody = document.getElementById('corpo-tabela');
+      const graficoBarras = document.getElementById('grafico-barras');
+      tbody.innerHTML = '<tr><td colspan="2">Buscando votos...</td></tr>';
+      graficoBarras.innerHTML = '<div style="padding: 20px; color: #666;">Carregando gráfico...</div>';
+
+      try {
+          // 2. Consulta a VIEW que você acabou de criar no Supabase
+          const { data, error } = await supabaseClient
+              .from('resumo_votos_municipio')
+              .select('nm_votavel, total_votos')
+              .eq('nm_municipio', nomeMun)
+              .order('total_votos', { ascending: false })
+              .limit(50); // Limita a 50 candidatos para acelerar
+
+          console.log('Resposta Supabase:', { data, error }); // Debug
+
+          if (error) {
+              console.error('Erro ao buscar dados:', error);
+              tbody.innerHTML = `<tr><td colspan="2">Erro: ${error.message}</td></tr>`;
+              graficoBarras.innerHTML = `<div style="padding: 20px; color: red;">Erro ao carregar gráfico</div>`;
+              return;
+          }
+
+          // 3. Renderiza os resultados na tabela e gráfico
+          if (data && data.length > 0) {
+              // Renderiza tabela
+              tbody.innerHTML = data.map(v => `
+                  <tr>
+                      <td>${v.nm_votavel}</td>
+                      <td style="text-align: right;">${Number(v.total_votos).toLocaleString('pt-BR')}</td>
+                  </tr>
+              `).join('');
+              
+              // Renderiza gráfico de barras
+              const maxVotos = Math.max(...data.map(v => v.total_votos));
+              const alturaMaxima = 150; // altura máxima da barra em pixels
+              
+              graficoBarras.innerHTML = data.map(v => {
+                  const altura = Math.max((v.total_votos / maxVotos) * alturaMaxima, 5); // mínimo 5px
+                  const votosFormatados = Number(v.total_votos).toLocaleString('pt-BR');
+                  // Trunca nome se muito longo
+                  const nomeExibir = v.nm_votavel.length > 15 
+                      ? v.nm_votavel.substring(0, 12) + '...' 
+                      : v.nm_votavel;
+                  
+                  return `
+                      <div class="barra-item" title="${v.nm_votavel}: ${votosFormatados} votos">
+                          <div class="barra-valor">${votosFormatados}</div>
+                          <div class="barra" style="height: ${altura}px;"></div>
+                          <div class="barra-nome">${nomeExibir}</div>
+                      </div>
+                  `;
+              }).join('');
+              
+          } else {
+              tbody.innerHTML = '<tr><td colspan="2">Nenhum dado encontrado para este município.</td></tr>';
+              graficoBarras.innerHTML = '<div style="padding: 20px; color: #666;">Sem dados para exibir</div>';
+          }
+      } catch (err) {
+          console.error('Erro na consulta:', err);
+          tbody.innerHTML = `<tr><td colspan="2">Erro ao carregar dados: ${err.message}</td></tr>`;
+          graficoBarras.innerHTML = `<div style="padding: 20px; color: red;">Erro ao carregar gráfico</div>`;
+      }
+  });
+</script>
+       
     </body>
 </html>

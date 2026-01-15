@@ -116,7 +116,7 @@ class SearchLayer extends ol.control.Control {
     ];
     const typesToZoomToCenterAndZoom = ['Point'];
 
-    const returnHorsey = (input, source, map, select, options) => {
+    const returnHorsey = (input, source, map, select, options, control) => {
       return horsey(input, {
         source: [{
           list: source.getFeatures().map((el, i) => {
@@ -146,17 +146,25 @@ class SearchLayer extends ol.control.Control {
 
           select.getFeatures().clear();
           select.getFeatures().push(feat);
+
+          if (control) {
+             control.dispatchEvent({
+                 type: 'select',
+                 text: info.selection.text,
+                 feature: feat
+             });
+          }
         }
       });
     };
 
     if (source.getState() === 'ready') {
-      horseyComponentRef.current = returnHorsey(input, source, map, select, options);
+      horseyComponentRef.current = returnHorsey(input, source, map, select, options, this);
     }
 
     source.once('change', () => {
       if (source.getState() === 'ready') {
-        horseyComponentRef.current = returnHorsey(input, source, map, select, options);
+        horseyComponentRef.current = returnHorsey(input, source, map, select, options, this);
       }
     });
   }
