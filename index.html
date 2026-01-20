@@ -106,6 +106,91 @@ th { background-color: #f8f8f8; font-weight: bold; }
     height: 30px;
     overflow: hidden;
 }
+
+/* Estilos do Autocomplete de Candidatos */
+#autocomplete-lista .autocomplete-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    border-bottom: 1px solid #eee;
+}
+#autocomplete-lista .autocomplete-item:hover,
+#autocomplete-lista .autocomplete-item.active {
+    background-color: #e74c3c;
+    color: white;
+}
+#autocomplete-lista .autocomplete-item:last-child {
+    border-bottom: none;
+}
+#autocomplete-lista .autocomplete-loading {
+    padding: 10px;
+    text-align: center;
+    color: #999;
+    font-size: 11px;
+}
+
+/* Estilos da Lista de Locais de Votação */
+#lista-locais-container {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    display: none;
+}
+#lista-locais-container.visible {
+    display: block;
+}
+#lista-locais-header {
+    background: #f8f8f8;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #555;
+    border-bottom: 1px solid #ddd;
+    position: sticky;
+    top: 0;
+}
+.local-item {
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 11px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+}
+.local-item:hover {
+    background-color: #fff3cd;
+}
+.local-item:last-child {
+    border-bottom: none;
+}
+.local-item .local-nome {
+    flex: 1;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-right: 8px;
+}
+.local-item .local-votos {
+    background: #e74c3c;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: bold;
+    min-width: 40px;
+    text-align: center;
+}
+.local-item .local-rank {
+    color: #999;
+    font-size: 10px;
+    margin-right: 6px;
+    min-width: 20px;
+}
         </style>
 
         <style>
@@ -125,6 +210,27 @@ th { background-color: #f8f8f8; font-weight: bold; }
                 <div id="popup-content"></div>
             </div>
         </div>
+        
+        <!-- Controle do Mapa de Calor -->
+        <div id="heatmap-control" style="position:absolute; top: 120px; left: 10px; z-index: 1000; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 320px;">
+            <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 8px;">🔥 Mapa de Calor por Candidato</label>
+            <div style="position: relative;">
+                <input type="text" id="inputCandidatoCalor" placeholder="Digite o nome do candidato..." autocomplete="off" style="padding: 8px; width: 200px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
+                <div id="autocomplete-lista" style="position: absolute; top: 100%; left: 0; width: 200px; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ccc; border-top: none; border-radius: 0 0 4px 4px; display: none; z-index: 1001;"></div>
+            </div>
+            <div style="margin-top: 8px;">
+                <button onclick="gerarMapaCalor(document.getElementById('inputCandidatoCalor').value)" style="padding: 8px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Gerar</button>
+                <button onclick="limparMapaCalor()" style="padding: 8px 12px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 3px;" title="Limpar mapa de calor">✕ Limpar</button>
+            </div>
+            <div id="heatmap-status" style="font-size: 11px; color: #666; margin-top: 6px;"></div>
+            
+            <!-- Lista de Locais de Votação -->
+            <div id="lista-locais-container">
+                <div id="lista-locais-header">📍 Locais de Votação (clique para zoom)</div>
+                <div id="lista-locais"></div>
+            </div>
+        </div>
+        
         <div id="sidebar-votos">
     <button class="btn-fechar" onclick="document.getElementById('sidebar-votos').style.display='none'">Fechar X</button>
     <h2 style="font-size: 18px;">Votos em: <span id="label-municipio"></span></h2>
@@ -164,6 +270,568 @@ th { background-color: #f8f8f8; font-weight: bold; }
   const supabaseUrl = 'https://tkoddsmozspfolltmpyh.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrb2Rkc21venNwZm9sbHRtcHloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzE5MjEsImV4cCI6MjA4MzMwNzkyMX0.Oe-3Dr5lMES0NfaFIURV-_PvKkeI3wlhkN4yJ_6bnh8';
   const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+  // ============================================
+  // MAPA DE CALOR (HEATMAP) - CONFIGURAÇÃO
+  // ============================================
+
+  // Dicionário para busca rápida: id_local -> [longitude, latitude]
+  const coordenadasLocais = {};
+
+  // Função para indexar as coordenadas dos locais de votação
+  function indexarLocais() {
+      try {
+          const source = lyr_locaisdevotao_1.getSource();
+          const features = source.getFeatures();
+          
+          if (features.length === 0) {
+              // Se ainda não carregou, aguarda o evento 'change'
+              source.once('change', function() {
+                  if (source.getState() === 'ready') {
+                      indexarLocaisInterno(source);
+                  }
+              });
+          } else {
+              indexarLocaisInterno(source);
+          }
+      } catch (e) {
+          console.error('Erro ao indexar locais:', e);
+      }
+  }
+
+  function indexarLocaisInterno(source) {
+      const features = source.getFeatures();
+      features.forEach(feat => {
+          // O campo é ID_LOCAL conforme verificado no layers.js
+          const id = feat.get('ID_LOCAL') || feat.get('id_local') || feat.getId();
+          if (id) {
+              const coords = feat.getGeometry().getCoordinates();
+              const idStr = String(id);
+              
+              // Armazena com o ID completo
+              coordenadasLocais[idStr] = coords;
+              coordenadasLocais[idStr.replace(/^0+/, '')] = coords; // versão sem zeros
+              
+              // Armazena também por CD_TSE + ZONA (primeiros 8 dígitos)
+              if (idStr.length === 12) {
+                  const cdTseZona = idStr.substring(0, 8); // CD_TSE (5) + ZONA (3)
+                  if (!coordenadasPorZona[cdTseZona]) {
+                      coordenadasPorZona[cdTseZona] = [];
+                  }
+                  coordenadasPorZona[cdTseZona].push(coords);
+                  
+                  // NOVO: Armazena também apenas por CD_TSE (município - primeiros 5 dígitos)
+                  const cdTse = idStr.substring(0, 5);
+                  if (!coordenadasPorMunicipio[cdTse]) {
+                      coordenadasPorMunicipio[cdTse] = [];
+                  }
+                  coordenadasPorMunicipio[cdTse].push(coords);
+              }
+          }
+      });
+      const qtd = Object.keys(coordenadasLocais).length;
+      const qtdZonas = Object.keys(coordenadasPorZona).length;
+      const qtdMunicipios = Object.keys(coordenadasPorMunicipio).length;
+      console.log(`Locais indexados: ${qtd} IDs, ${qtdZonas} zonas, ${qtdMunicipios} municípios`);
+      document.getElementById('heatmap-status').innerText = `${features.length} locais de votação carregados`;
+  }
+
+  // Dicionário adicional para match por zona (CD_TSE + ZONA)
+  const coordenadasPorZona = {};
+
+  // Dicionário adicional para match por município (apenas CD_TSE - 5 dígitos)
+  const coordenadasPorMunicipio = {};
+
+  // Cria a source e layer do Heatmap
+  const sourceHeatmap = new ol.source.Vector();
+
+  const layerHeatmap = new ol.layer.Heatmap({
+      source: sourceHeatmap,
+      blur: 15,      // Quão "borrado" é o ponto
+      radius: 12,    // Tamanho do ponto de calor
+      opacity: 0.75,
+      visible: false, // Começa invisível
+      // Define o peso baseado nos votos normalizados (0 a 1)
+      weight: function(feature) {
+          const votos = feature.get('votos') || 0;
+          const maxVotos = feature.get('maxVotos') || 1;
+          return votos / maxVotos;
+      }
+  });
+
+  // Adiciona a camada ao mapa após ele estar pronto
+  setTimeout(() => {
+      if (typeof map !== 'undefined') {
+          map.addLayer(layerHeatmap);
+          indexarLocais();
+      }
+  }, 1500);
+
+  // Função principal para gerar o mapa de calor
+  async function gerarMapaCalor(nomeCandidato) {
+      if (!nomeCandidato || nomeCandidato.trim() === '') {
+          alert('Por favor, digite o nome de um candidato.');
+          return;
+      }
+
+      const statusEl = document.getElementById('heatmap-status');
+      statusEl.innerText = `Buscando votos para: ${nomeCandidato}...`;
+      statusEl.style.color = '#3498db';
+
+      console.log(`Gerando mapa de calor para: ${nomeCandidato}`);
+
+      try {
+          // Busca os votos por local no Supabase
+          // IMPORTANTE: Supabase tem limite padrão de 1000 registros
+          // Precisamos paginar para buscar todos os votos do candidato
+          const nomeUpper = nomeCandidato.toUpperCase().trim();
+          
+          let allData = [];
+          let offset = 0;
+          const pageSize = 1000;
+          let hasMore = true;
+          
+          while (hasMore) {
+              const { data, error } = await supabaseClient
+                  .from('votos_por_local')
+                  .select('id_local, qt_votos')
+                  .eq('nm_votavel', nomeUpper)
+                  .range(offset, offset + pageSize - 1);
+
+              if (error) {
+                  console.error('Erro ao buscar votos:', error);
+                  
+                  if (error.message.includes('timeout')) {
+                      statusEl.innerHTML = `<span style="color:#e74c3c">Timeout!</span> Crie a MATERIALIZED VIEW votos_por_local com índice.`;
+                  } else {
+                      statusEl.innerText = `Erro: ${error.message}`;
+                  }
+                  statusEl.style.color = '#e74c3c';
+                  return;
+              }
+
+              if (data && data.length > 0) {
+                  allData = allData.concat(data);
+                  offset += pageSize;
+                  hasMore = data.length === pageSize; // Se retornou menos, não há mais
+                  
+                  // Atualiza status durante o carregamento
+                  if (hasMore) {
+                      statusEl.innerText = `Carregando... ${allData.length} registros`;
+                  }
+              } else {
+                  hasMore = false;
+              }
+          }
+          
+          const data = allData;
+          console.log(`Total de registros carregados: ${data.length}`);
+
+          if (!data || data.length === 0) {
+              statusEl.innerText = 'Nenhum voto encontrado para este candidato.';
+              statusEl.style.color = '#e67e22';
+              return;
+          }
+
+          // Limpa heatmap anterior
+          sourceHeatmap.clear();
+
+          // Descobre o máximo de votos para normalização
+          let maxVotosEncontrado = 0;
+          data.forEach(d => {
+              if (d.qt_votos > maxVotosEncontrado) {
+                  maxVotosEncontrado = d.qt_votos;
+              }
+          });
+
+          // Cria as features do Heatmap
+          const featuresCalor = [];
+          let locaisEncontrados = 0;
+          let locaisMatchZona = 0; // Match por zona (aproximado)
+          let locaisMatchMunicipio = 0; // Match por município (mais aproximado)
+          let votosEncontrados = 0;
+          let votosNaoEncontrados = 0;
+          let idsNaoEncontrados = [];
+
+          data.forEach(item => {
+              const idStr = String(item.id_local);
+              
+              // Tenta encontrar coordenadas com ID exato
+              let coords = coordenadasLocais[idStr];
+              let tipoMatch = 'exato';
+              
+              // Se não encontrou, tenta sem zeros à esquerda
+              if (!coords) {
+                  coords = coordenadasLocais[idStr.replace(/^0+/, '')];
+              }
+              
+              // Se não encontrou, tenta com zeros à esquerda (padding)
+              if (!coords) {
+                  const idPadded = idStr.padStart(12, '0');
+                  coords = coordenadasLocais[idPadded];
+              }
+              
+              // Se ainda não encontrou, tenta match por CD_TSE + ZONA (primeiros 8 dígitos)
+              if (!coords && idStr.length >= 8) {
+                  const cdTseZona = idStr.substring(0, 8);
+                  const coordsZona = coordenadasPorZona[cdTseZona];
+                  if (coordsZona && coordsZona.length > 0) {
+                      coords = coordsZona[0];
+                      tipoMatch = 'zona';
+                  }
+              }
+              
+              // NOVO: Se ainda não encontrou, tenta match por CD_TSE (município - primeiros 5 dígitos)
+              if (!coords && idStr.length >= 5) {
+                  const cdTse = idStr.substring(0, 5);
+                  const coordsMunicipio = coordenadasPorMunicipio[cdTse];
+                  if (coordsMunicipio && coordsMunicipio.length > 0) {
+                      // Usa uma coordenada aleatória do município para distribuir melhor
+                      const idx = Math.floor(Math.random() * coordsMunicipio.length);
+                      coords = coordsMunicipio[idx];
+                      tipoMatch = 'municipio';
+                  }
+              }
+              
+              if (coords) {
+                  const feature = new ol.Feature({
+                      geometry: new ol.geom.Point(coords),
+                      votos: item.qt_votos,
+                      maxVotos: maxVotosEncontrado,
+                      idLocal: item.id_local
+                  });
+                  featuresCalor.push(feature);
+                  if (tipoMatch === 'exato') {
+                      locaisEncontrados++;
+                  } else if (tipoMatch === 'zona') {
+                      locaisMatchZona++;
+                  } else {
+                      locaisMatchMunicipio++;
+                  }
+                  votosEncontrados += item.qt_votos;
+              } else {
+                  votosNaoEncontrados += item.qt_votos;
+                  if (idsNaoEncontrados.length < 5) {
+                      idsNaoEncontrados.push(item.id_local);
+                  }
+              }
+          });
+
+          // DEBUG: Mostra no console a diferença
+          const totalVotosDB = data.reduce((sum, d) => sum + d.qt_votos, 0);
+          console.log(`DEBUG - Votos do banco: ${totalVotosDB}`);
+          console.log(`DEBUG - Votos com coordenadas: ${votosEncontrados}`);
+          console.log(`DEBUG - Votos SEM coordenadas: ${votosNaoEncontrados}`);
+          console.log(`DEBUG - Locais no banco: ${data.length}`);
+          console.log(`DEBUG - Locais com coordenadas exatas: ${locaisEncontrados}`);
+          console.log(`DEBUG - Locais com match por zona: ${locaisMatchZona}`);
+          console.log(`DEBUG - Exemplos de IDs não encontrados:`, idsNaoEncontrados);
+          
+          // Mostra um exemplo de ID do banco vs ID do mapa
+          if (data.length > 0) {
+              console.log(`DEBUG - Exemplo ID do banco: "${data[0].id_local}" (tipo: ${typeof data[0].id_local})`);
+          }
+          const primeiroIdMapa = Object.keys(coordenadasLocais)[0];
+          console.log(`DEBUG - Exemplo ID do mapa: "${primeiroIdMapa}" (tipo: ${typeof primeiroIdMapa})`);
+
+          // Adiciona ao mapa
+          sourceHeatmap.addFeatures(featuresCalor);
+          layerHeatmap.setVisible(true);
+
+          // Atualiza status - mostra total do banco e total mapeado
+          // totalVotosDB já foi calculado acima na linha 472
+          const totalLocaisMapeados = locaisEncontrados + locaisMatchZona + locaisMatchMunicipio;
+          
+          let statusHtml = `<strong>${nomeCandidato}</strong>: ${votosEncontrados.toLocaleString('pt-BR')} votos em ${totalLocaisMapeados} locais`;
+          
+          // Mostra detalhes do tipo de match
+          const matchDetails = [];
+          if (locaisEncontrados > 0) matchDetails.push(`${locaisEncontrados} exatos`);
+          if (locaisMatchZona > 0) matchDetails.push(`${locaisMatchZona} por zona`);
+          if (locaisMatchMunicipio > 0) matchDetails.push(`${locaisMatchMunicipio} por município`);
+          
+          if (matchDetails.length > 1) {
+              statusHtml += `<br><span style="color:#3498db; font-size:10px;">ℹ️ ${matchDetails.join(', ')}</span>`;
+          }
+          
+          if (votosNaoEncontrados > 0) {
+              statusHtml += `<br><span style="color:#e67e22; font-size:10px;">⚠️ ${votosNaoEncontrados.toLocaleString('pt-BR')} votos sem coordenadas (mapa 2012 vs dados 2022)</span>`;
+          }
+          
+          statusEl.innerHTML = statusHtml;
+          statusEl.style.color = '#27ae60';
+
+          // Popula a lista de locais de votação (ordenada por votos decrescente)
+          popularListaLocais(data, nomeCandidato);
+
+          // Opcional: Centralizar o mapa na extensão dos pontos
+          if (featuresCalor.length > 0) {
+              map.getView().fit(sourceHeatmap.getExtent(), { 
+                  padding: [50, 50, 50, 400],
+                  duration: 500
+              });
+          }
+
+      } catch (err) {
+          console.error('Erro na consulta:', err);
+          statusEl.innerText = `Erro: ${err.message}`;
+          statusEl.style.color = '#e74c3c';
+      }
+  }
+
+  // Armazena dados dos locais para referência
+  let dadosLocaisAtuais = [];
+
+  // Popula a lista de locais de votação
+  function popularListaLocais(data, candidato) {
+      const container = document.getElementById('lista-locais-container');
+      const lista = document.getElementById('lista-locais');
+      
+      // Filtra apenas locais com coordenadas e ordena por votos (decrescente)
+      dadosLocaisAtuais = data
+          .filter(item => coordenadasLocais[item.id_local])
+          .sort((a, b) => b.qt_votos - a.qt_votos);
+
+      if (dadosLocaisAtuais.length === 0) {
+          container.classList.remove('visible');
+          return;
+      }
+
+      // Busca informações adicionais dos locais (nome do município, etc)
+      const locaisInfo = obterInfoLocais();
+
+      // Gera HTML da lista
+      lista.innerHTML = dadosLocaisAtuais.map((item, index) => {
+          const info = locaisInfo[item.id_local] || {};
+          const nomeLocal = info.municipio || `Local ${item.id_local}`;
+          const zona = info.zona ? ` (Z${info.zona})` : '';
+          
+          return `
+              <div class="local-item" onclick="zoomParaLocal('${item.id_local}')" title="Clique para zoom - ${nomeLocal}${zona}">
+                  <span class="local-rank">#${index + 1}</span>
+                  <span class="local-nome">${nomeLocal}${zona}</span>
+                  <span class="local-votos">${item.qt_votos.toLocaleString('pt-BR')}</span>
+              </div>
+          `;
+      }).join('');
+
+      container.classList.add('visible');
+  }
+
+  // Obtém informações dos locais a partir da camada de locais de votação
+  function obterInfoLocais() {
+      const info = {};
+      try {
+          const source = lyr_locaisdevotao_1.getSource();
+          const features = source.getFeatures();
+          
+          features.forEach(feat => {
+              const id = feat.get('ID_LOCAL') || feat.get('id_local') || feat.getId();
+              if (id) {
+                  info[id] = {
+                      municipio: feat.get('municipios_todos_nome') || feat.get('NM_MUNICIPIO') || feat.get('nm_municipio'),
+                      zona: feat.get('zona') || feat.get('ZONA'),
+                      secao: feat.get('secao') || feat.get('SECAO')
+                  };
+              }
+          });
+      } catch (e) {
+          console.error('Erro ao obter info dos locais:', e);
+      }
+      return info;
+  }
+
+  // Faz zoom para um local específico
+  function zoomParaLocal(idLocal) {
+      const coords = coordenadasLocais[idLocal];
+      
+      if (coords) {
+          map.getView().animate({
+              center: coords,
+              zoom: 15, // Zoom bem próximo
+              duration: 800
+          });
+
+          // Destaca visualmente o local (opcional - cria um pulso)
+          destacarLocal(coords);
+      } else {
+          console.warn('Coordenadas não encontradas para:', idLocal);
+      }
+  }
+
+  // Cria um efeito visual de destaque no local
+  function destacarLocal(coords) {
+      // Remove destaque anterior se existir
+      if (window.featureDestaque) {
+          sourceHeatmap.removeFeature(window.featureDestaque);
+      }
+
+      // Cria uma feature temporária com peso máximo para destacar
+      window.featureDestaque = new ol.Feature({
+          geometry: new ol.geom.Point(coords),
+          votos: 1000,
+          maxVotos: 100 // Peso alto para ficar bem visível
+      });
+      
+      sourceHeatmap.addFeature(window.featureDestaque);
+
+      // Remove após 2 segundos
+      setTimeout(() => {
+          if (window.featureDestaque) {
+              sourceHeatmap.removeFeature(window.featureDestaque);
+              window.featureDestaque = null;
+          }
+      }, 2000);
+  }
+
+  // Função para limpar o mapa de calor
+  function limparMapaCalor() {
+      sourceHeatmap.clear();
+      layerHeatmap.setVisible(false);
+      document.getElementById('inputCandidatoCalor').value = '';
+      document.getElementById('heatmap-status').innerText = `${Object.keys(coordenadasLocais).length} locais de votação carregados`;
+      document.getElementById('heatmap-status').style.color = '#666';
+      
+      // Esconde a lista de locais
+      document.getElementById('lista-locais-container').classList.remove('visible');
+      document.getElementById('lista-locais').innerHTML = '';
+      dadosLocaisAtuais = [];
+  }
+
+  // Permite pressionar Enter para buscar
+  document.addEventListener('DOMContentLoaded', function() {
+      const input = document.getElementById('inputCandidatoCalor');
+      if (input) {
+          input.addEventListener('keypress', function(e) {
+              if (e.key === 'Enter') {
+                  fecharAutocomplete();
+                  gerarMapaCalor(this.value);
+              }
+          });
+      }
+  });
+
+  // ============================================
+  // AUTOCOMPLETE DE CANDIDATOS
+  // ============================================
+  
+  let timeoutAutocomplete = null;
+  let candidatosCache = []; // Cache dos candidatos encontrados
+  let indiceSelecionado = -1;
+
+  // Busca candidatos conforme digita
+  async function buscarCandidatos(termo) {
+      if (!termo || termo.length < 2) {
+          fecharAutocomplete();
+          return;
+      }
+
+      const listaEl = document.getElementById('autocomplete-lista');
+      listaEl.innerHTML = '<div class="autocomplete-loading">Buscando...</div>';
+      listaEl.style.display = 'block';
+
+      try {
+          // Busca nomes distintos de candidatos - usa a view ou tabela com limite
+          const { data, error } = await supabaseClient
+              .from('candidatos_distintos') // View: SELECT DISTINCT nm_votavel FROM votos_2022_processada ORDER BY nm_votavel
+              .select('nm_votavel')
+              .ilike('nm_votavel', `%${termo}%`)
+              .limit(15);
+
+          if (error) {
+              console.error('Erro ao buscar candidatos:', error);
+              listaEl.innerHTML = '<div class="autocomplete-loading">Erro na busca</div>';
+              return;
+          }
+
+          candidatosCache = data || [];
+          indiceSelecionado = -1;
+
+          if (candidatosCache.length === 0) {
+              listaEl.innerHTML = '<div class="autocomplete-loading">Nenhum candidato encontrado</div>';
+              return;
+          }
+
+          // Renderiza a lista
+          listaEl.innerHTML = candidatosCache.map((c, idx) => 
+              `<div class="autocomplete-item" data-index="${idx}" onclick="selecionarCandidato('${c.nm_votavel.replace(/'/g, "\\'")}')">${c.nm_votavel}</div>`
+          ).join('');
+
+      } catch (err) {
+          console.error('Erro:', err);
+          listaEl.innerHTML = '<div class="autocomplete-loading">Erro na busca</div>';
+      }
+  }
+
+  // Seleciona um candidato da lista
+  function selecionarCandidato(nome) {
+      document.getElementById('inputCandidatoCalor').value = nome;
+      fecharAutocomplete();
+      gerarMapaCalor(nome);
+  }
+
+  // Fecha o autocomplete
+  function fecharAutocomplete() {
+      document.getElementById('autocomplete-lista').style.display = 'none';
+      candidatosCache = [];
+      indiceSelecionado = -1;
+  }
+
+  // Configura os eventos do input
+  document.addEventListener('DOMContentLoaded', function() {
+      const input = document.getElementById('inputCandidatoCalor');
+      
+      if (input) {
+          // Busca com debounce ao digitar
+          input.addEventListener('input', function() {
+              clearTimeout(timeoutAutocomplete);
+              timeoutAutocomplete = setTimeout(() => {
+                  buscarCandidatos(this.value);
+              }, 300); // Espera 300ms após parar de digitar
+          });
+
+          // Navegação com teclado
+          input.addEventListener('keydown', function(e) {
+              const listaEl = document.getElementById('autocomplete-lista');
+              const items = listaEl.querySelectorAll('.autocomplete-item');
+              
+              if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  indiceSelecionado = Math.min(indiceSelecionado + 1, items.length - 1);
+                  atualizarSelecaoAutocomplete(items);
+              } else if (e.key === 'ArrowUp') {
+                  e.preventDefault();
+                  indiceSelecionado = Math.max(indiceSelecionado - 1, 0);
+                  atualizarSelecaoAutocomplete(items);
+              } else if (e.key === 'Enter' && indiceSelecionado >= 0) {
+                  e.preventDefault();
+                  if (candidatosCache[indiceSelecionado]) {
+                      selecionarCandidato(candidatosCache[indiceSelecionado].nm_votavel);
+                  }
+              } else if (e.key === 'Escape') {
+                  fecharAutocomplete();
+              }
+          });
+
+          // Fecha ao clicar fora
+          document.addEventListener('click', function(e) {
+              if (!e.target.closest('#heatmap-control')) {
+                  fecharAutocomplete();
+              }
+          });
+      }
+  });
+
+  function atualizarSelecaoAutocomplete(items) {
+      items.forEach((item, idx) => {
+          if (idx === indiceSelecionado) {
+              item.classList.add('active');
+              item.scrollIntoView({ block: 'nearest' });
+          } else {
+              item.classList.remove('active');
+          }
+      });
+  }
 
   // Detecta a seleção no buscador do mapa
   searchLayer.on('select', async function(e) {
