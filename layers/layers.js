@@ -38,7 +38,7 @@ var lyr_setorescensitarios_2 = new ol.layer.Vector({
                 source:jsonSource_setorescensitarios_2, 
                 style: style_setorescensitarios_2,
                 popuplayertitle: 'setores censitarios',
-                interactive: true,
+                interactive: false,  // Desabilitado - usando sidebar customizada
     title: 'setores censitarios<br />\
     <img src="styles/legend/setorescensitarios_2_0.png" /> 0,00 - 2085,71<br />\
     <img src="styles/legend/setorescensitarios_2_1.png" /> 2085,71 - 2263,04<br />\
