@@ -336,6 +336,80 @@ th { background-color: #f8f8f8; font-weight: bold; }
 .legenda-texto {
     color: #555;
 }
+
+/* Estilos do Exportar PDF */
+#export-pdf-container {
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #f9f9f9;
+    display: none;
+}
+#export-pdf-container.visible {
+    display: block;
+}
+#export-pdf-container label {
+    font-size: 11px;
+    font-weight: bold;
+    color: #333;
+    display: block;
+    margin-bottom: 5px;
+}
+#select-cidade-pdf {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 11px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+#btn-exportar-pdf {
+    width: 100%;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+#btn-exportar-pdf:hover {
+    background: linear-gradient(135deg, #2471a3 0%, #2e86c1 100%);
+}
+#btn-exportar-pdf:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+}
+#btn-exportar-pdf-estado {
+    width: 100%;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: background 0.2s;
+    margin-top: 5px;
+}
+#btn-exportar-pdf-estado:hover {
+    background: linear-gradient(135deg, #7d3c98 0%, #8e44ad 100%);
+}
+#btn-exportar-pdf-estado:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+}
+#pdf-status {
+    font-size: 10px;
+    color: #666;
+    margin-top: 5px;
+    text-align: center;
+}
         </style>
 
         <style>
@@ -374,6 +448,17 @@ th { background-color: #f8f8f8; font-weight: bold; }
                 <div id="lista-locais-header">📍 Locais de Votação (clique para zoom)</div>
                 <input type="text" id="filtro-cidade" placeholder="🔍 Filtrar por cidade..." style="width: 100%; padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 11px; margin-bottom: 5px; box-sizing: border-box;" oninput="filtrarLocaisPorCidade(this.value)">
                 <div id="lista-locais"></div>
+            </div>
+
+            <!-- Exportar PDF -->
+            <div id="export-pdf-container">
+                <label>📄 Exportar Relatório PDF</label>
+                <select id="select-cidade-pdf">
+                    <option value="">-- Selecione uma cidade --</option>
+                </select>
+                <button id="btn-exportar-pdf" onclick="exportarRelatorioPDF()" disabled>📄 Exportar PDF da Cidade</button>
+                <button id="btn-exportar-pdf-estado" onclick="exportarRelatorioPDFEstado()">📄 Exportar PDF Estadual</button>
+                <div id="pdf-status"></div>
             </div>
         </div>
         
@@ -487,6 +572,8 @@ th { background-color: #f8f8f8; font-weight: bold; }
         <script src="./resources/Autolinker.min.js"></script>
         <script src="./resources/qgis2web.js"></script> 
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
   // Inicializa o cliente Supabase
@@ -826,6 +913,9 @@ th { background-color: #f8f8f8; font-weight: bold; }
       // Renderiza a lista completa
       renderizarListaLocais(dadosLocaisAtuais);
       container.classList.add('visible');
+
+      // Popula o select de cidades para exportação PDF
+      popularSelectCidades();
   }
 
   // Renderiza a lista de locais (usada pelo filtro também)
@@ -937,6 +1027,690 @@ th { background-color: #f8f8f8; font-weight: bold; }
       }, 2000);
   }
 
+  // ============================================
+  // EXPORTAR RELATÓRIO PDF
+  // ============================================
+
+  // Popula o select de cidades com os municípios disponíveis nos dados
+  function popularSelectCidades() {
+      const select = document.getElementById('select-cidade-pdf');
+      const container = document.getElementById('export-pdf-container');
+      
+      if (!dadosLocaisAtuais || dadosLocaisAtuais.length === 0) {
+          container.classList.remove('visible');
+          return;
+      }
+
+      // Extrai municípios distintos e ordena
+      const municipiosSet = new Set();
+      dadosLocaisAtuais.forEach(item => {
+          if (item.nm_municipio) municipiosSet.add(item.nm_municipio);
+      });
+      const municipios = Array.from(municipiosSet).sort();
+
+      select.innerHTML = '<option value="">-- Selecione uma cidade (' + municipios.length + ' disponíveis) --</option>';
+      municipios.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m;
+          opt.textContent = m;
+          select.appendChild(opt);
+      });
+
+      // Habilita/desabilita o botão conforme seleção
+      select.onchange = function() {
+          document.getElementById('btn-exportar-pdf').disabled = !this.value;
+      };
+
+      container.classList.add('visible');
+      document.getElementById('btn-exportar-pdf').disabled = true;
+      document.getElementById('pdf-status').textContent = '';
+  }
+
+  // ============================================
+  // RENDERIZAÇÃO DE MAPA PARA PDF (sem tiles Google — sem CORS)
+  // ============================================
+
+  // Renderiza o limite do município + mapa de calor em um canvas próprio
+  function renderizarMapaMunicipioPDF(cidadeNome, largura, altura) {
+      if (!largura) largura = 900;
+      if (!altura) altura = 600;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = largura;
+      canvas.height = altura;
+      const ctx = canvas.getContext('2d');
+
+      // Fundo branco
+      ctx.fillStyle = '#f5f5f5';
+      ctx.fillRect(0, 0, largura, altura);
+
+      // Busca a feature do município
+      const featureMun = lyr_RS_Municipios_2023_3.getSource().getFeatures().find(f =>
+          (f.get('NM_MUN') || '').toUpperCase() === cidadeNome.toUpperCase()
+      );
+
+      if (!featureMun) {
+          ctx.fillStyle = '#999';
+          ctx.font = '14px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('Município não encontrado no mapa', largura / 2, altura / 2);
+          return canvas.toDataURL('image/png');
+      }
+
+      // Calcula o extent do município para definir a viewport
+      const geom = featureMun.getGeometry();
+      const extent = geom.getExtent(); // [minX, minY, maxX, maxY] em EPSG:3857
+      const extW = extent[2] - extent[0];
+      const extH = extent[3] - extent[1];
+      const padding = 0.08; // 8% de margem
+      const padX = extW * padding;
+      const padY = extH * padding;
+      const viewExtent = [
+          extent[0] - padX, extent[1] - padY,
+          extent[2] + padX, extent[3] + padY
+      ];
+      const vW = viewExtent[2] - viewExtent[0];
+      const vH = viewExtent[3] - viewExtent[1];
+
+      // Escala para caber no canvas mantendo proporção
+      const scaleX = largura / vW;
+      const scaleY = altura / vH;
+      const scale = Math.min(scaleX, scaleY);
+      const offsetX = (largura - vW * scale) / 2;
+      const offsetY = (altura - vH * scale) / 2;
+
+      // Função auxiliar: converte coord EPSG:3857 -> pixel do canvas
+      function toPixel(x, y) {
+          return [
+              offsetX + (x - viewExtent[0]) * scale,
+              offsetY + (viewExtent[3] - y) * scale // Y invertido
+          ];
+      }
+
+      // --- 1. Desenha o contorno do município ---
+      ctx.strokeStyle = 'rgba(0, 200, 220, 1)';
+      ctx.lineWidth = 2.5;
+      ctx.setLineDash([8, 4]);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+
+      const coordsArrays = [];
+      const geomType = geom.getType();
+      if (geomType === 'MultiPolygon') {
+          geom.getPolygons().forEach(function(poly) {
+              coordsArrays.push(poly.getLinearRing(0).getCoordinates());
+          });
+      } else if (geomType === 'Polygon') {
+          coordsArrays.push(geom.getLinearRing(0).getCoordinates());
+      }
+
+      coordsArrays.forEach(function(coords) {
+          ctx.beginPath();
+          coords.forEach(function(coord, i) {
+              var px = toPixel(coord[0], coord[1]);
+              if (i === 0) ctx.moveTo(px[0], px[1]);
+              else ctx.lineTo(px[0], px[1]);
+          });
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+      });
+      ctx.setLineDash([]);
+
+      // --- 2. Desenha os pontos de calor (heatmap) do município ---
+      // Filtra features do heatmap que estão dentro do extent do município
+      const heatFeatures = sourceHeatmap.getFeatures().filter(function(f) {
+          var c = f.getGeometry().getCoordinates();
+          return c[0] >= extent[0] && c[0] <= extent[2] &&
+                 c[1] >= extent[1] && c[1] <= extent[3];
+      });
+
+      if (heatFeatures.length > 0) {
+          var maxV = 0;
+          heatFeatures.forEach(function(f) {
+              var v = f.get('votos') || 0;
+              if (v > maxV) maxV = v;
+          });
+
+          // Cria um canvas temporário para o heatmap
+          var heatCanvas = document.createElement('canvas');
+          heatCanvas.width = largura;
+          heatCanvas.height = altura;
+          var hctx = heatCanvas.getContext('2d');
+
+          // Desenha cada ponto como gradiente radial
+          var radius = Math.max(12, Math.min(30, largura / 30));
+          heatFeatures.forEach(function(f) {
+              var c = f.getGeometry().getCoordinates();
+              var px = toPixel(c[0], c[1]);
+              var votos = f.get('votos') || 0;
+              var intensidade = maxV > 0 ? votos / maxV : 0.3;
+              intensidade = Math.max(0.08, intensidade);
+
+              var grad = hctx.createRadialGradient(px[0], px[1], 0, px[0], px[1], radius);
+              grad.addColorStop(0, 'rgba(255, 0, 0, ' + (intensidade * 0.8) + ')');
+              grad.addColorStop(0.4, 'rgba(255, 165, 0, ' + (intensidade * 0.5) + ')');
+              grad.addColorStop(0.7, 'rgba(255, 255, 0, ' + (intensidade * 0.25) + ')');
+              grad.addColorStop(1, 'rgba(0, 255, 0, 0)');
+              hctx.fillStyle = grad;
+              hctx.fillRect(px[0] - radius, px[1] - radius, radius * 2, radius * 2);
+          });
+
+          // Compõe o heatmap sobre o canvas principal
+          ctx.globalAlpha = 0.75;
+          ctx.drawImage(heatCanvas, 0, 0);
+          ctx.globalAlpha = 1;
+      }
+
+      // --- 3. Redesenha o contorno por cima do heatmap ---
+      ctx.strokeStyle = 'rgba(0, 180, 200, 0.9)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 4]);
+      coordsArrays.forEach(function(coords) {
+          ctx.beginPath();
+          coords.forEach(function(coord, i) {
+              var px = toPixel(coord[0], coord[1]);
+              if (i === 0) ctx.moveTo(px[0], px[1]);
+              else ctx.lineTo(px[0], px[1]);
+          });
+          ctx.closePath();
+          ctx.stroke();
+      });
+      ctx.setLineDash([]);
+
+      // --- 4. Nome do município ---
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.font = 'bold 16px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(cidadeNome, largura / 2, 22);
+
+      // --- 5. Legenda do heatmap ---
+      if (heatFeatures.length > 0) {
+          var legX = largura - 140;
+          var legY = altura - 35;
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          ctx.fillRect(legX, legY, 130, 28);
+          ctx.strokeStyle = '#ccc';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(legX, legY, 130, 28);
+          // Gradiente da legenda
+          var legGrad = ctx.createLinearGradient(legX + 5, 0, legX + 95, 0);
+          legGrad.addColorStop(0, 'green');
+          legGrad.addColorStop(0.35, 'yellow');
+          legGrad.addColorStop(0.65, 'orange');
+          legGrad.addColorStop(1, 'red');
+          ctx.fillStyle = legGrad;
+          ctx.fillRect(legX + 5, legY + 5, 90, 10);
+          ctx.fillStyle = '#333';
+          ctx.font = '9px sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText('- votos', legX + 5, legY + 24);
+          ctx.textAlign = 'right';
+          ctx.fillText('+ votos', legX + 95, legY + 24);
+          ctx.textAlign = 'center';
+          ctx.fillText(heatFeatures.length + ' pts', legX + 115, legY + 14);
+      }
+
+      return canvas.toDataURL('image/png');
+  }
+
+  // Renderiza o mapa estadual (todos os municípios + heatmap) para PDF
+  function renderizarMapaEstadualPDF(largura, altura) {
+      if (!largura) largura = 900;
+      if (!altura) altura = 700;
+
+      var canvas = document.createElement('canvas');
+      canvas.width = largura;
+      canvas.height = altura;
+      var ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#f0f4f8';
+      ctx.fillRect(0, 0, largura, altura);
+
+      // Extent do RS completo a partir do heatmap ou camada de municípios
+      var allFeatures = lyr_RS_Municipios_2023_3.getSource().getFeatures();
+      if (allFeatures.length === 0) return null;
+
+      var viewExtent = lyr_RS_Municipios_2023_3.getSource().getExtent();
+      var vW = viewExtent[2] - viewExtent[0];
+      var vH = viewExtent[3] - viewExtent[1];
+      var padding = 0.05;
+      viewExtent = [
+          viewExtent[0] - vW * padding, viewExtent[1] - vH * padding,
+          viewExtent[2] + vW * padding, viewExtent[3] + vH * padding
+      ];
+      vW = viewExtent[2] - viewExtent[0];
+      vH = viewExtent[3] - viewExtent[1];
+
+      var scaleX = largura / vW;
+      var scaleY = altura / vH;
+      var scale = Math.min(scaleX, scaleY);
+      var offsetX = (largura - vW * scale) / 2;
+      var offsetY = (altura - vH * scale) / 2;
+
+      function toPixel(x, y) {
+          return [
+              offsetX + (x - viewExtent[0]) * scale,
+              offsetY + (viewExtent[3] - y) * scale
+          ];
+      }
+
+      // Desenha todos os municípios
+      ctx.strokeStyle = 'rgba(0, 200, 220, 0.5)';
+      ctx.lineWidth = 0.5;
+      ctx.fillStyle = 'rgba(230, 240, 250, 0.4)';
+
+      allFeatures.forEach(function(feat) {
+          var geom = feat.getGeometry();
+          var coordsArrays = [];
+          if (geom.getType() === 'MultiPolygon') {
+              geom.getPolygons().forEach(function(p) { coordsArrays.push(p.getLinearRing(0).getCoordinates()); });
+          } else if (geom.getType() === 'Polygon') {
+              coordsArrays.push(geom.getLinearRing(0).getCoordinates());
+          }
+          coordsArrays.forEach(function(coords) {
+              ctx.beginPath();
+              coords.forEach(function(c, i) {
+                  var px = toPixel(c[0], c[1]);
+                  if (i === 0) ctx.moveTo(px[0], px[1]); else ctx.lineTo(px[0], px[1]);
+              });
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+          });
+      });
+
+      // Desenha heatmap estadual
+      var heatFeatures = sourceHeatmap.getFeatures();
+      if (heatFeatures.length > 0) {
+          var maxV = 0;
+          heatFeatures.forEach(function(f) { var v = f.get('votos') || 0; if (v > maxV) maxV = v; });
+
+          var heatCanvas = document.createElement('canvas');
+          heatCanvas.width = largura;
+          heatCanvas.height = altura;
+          var hctx = heatCanvas.getContext('2d');
+          var radius = Math.max(5, Math.min(15, largura / 80));
+
+          heatFeatures.forEach(function(f) {
+              var c = f.getGeometry().getCoordinates();
+              var px = toPixel(c[0], c[1]);
+              var votos = f.get('votos') || 0;
+              var intensidade = Math.max(0.05, maxV > 0 ? votos / maxV : 0.2);
+              var grad = hctx.createRadialGradient(px[0], px[1], 0, px[0], px[1], radius);
+              grad.addColorStop(0, 'rgba(255, 0, 0, ' + (intensidade * 0.7) + ')');
+              grad.addColorStop(0.4, 'rgba(255, 165, 0, ' + (intensidade * 0.4) + ')');
+              grad.addColorStop(0.7, 'rgba(255, 255, 0, ' + (intensidade * 0.2) + ')');
+              grad.addColorStop(1, 'rgba(0, 255, 0, 0)');
+              hctx.fillStyle = grad;
+              hctx.fillRect(px[0] - radius, px[1] - radius, radius * 2, radius * 2);
+          });
+
+          ctx.globalAlpha = 0.75;
+          ctx.drawImage(heatCanvas, 0, 0);
+          ctx.globalAlpha = 1;
+      }
+
+      // Título
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.font = 'bold 16px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Rio Grande do Sul', largura / 2, 22);
+
+      return canvas.toDataURL('image/png');
+  }
+
+  // Exporta relatório PDF para uma cidade específica
+  async function exportarRelatorioPDF() {
+      const cidadeSelecionada = document.getElementById('select-cidade-pdf').value;
+      if (!cidadeSelecionada) {
+          alert('Por favor, selecione uma cidade.');
+          return;
+      }
+
+      const candidato = document.getElementById('inputCandidatoCalor').value.trim();
+      if (!candidato) {
+          alert('Nenhum candidato pesquisado.');
+          return;
+      }
+
+      const statusEl = document.getElementById('pdf-status');
+      const btnPdf = document.getElementById('btn-exportar-pdf');
+      btnPdf.disabled = true;
+      statusEl.innerHTML = '⏳ Preparando relatório...';
+      statusEl.style.color = '#3498db';
+
+      try {
+          // 1. Filtra dados da cidade selecionada
+          const dadosCidade = dadosLocaisAtuais
+              .filter(item => (item.nm_municipio || '').toUpperCase() === cidadeSelecionada.toUpperCase())
+              .sort((a, b) => b.qt_votos - a.qt_votos);
+
+          const totalVotosCidade = dadosCidade.reduce((sum, item) => sum + item.qt_votos, 0);
+
+          if (dadosCidade.length === 0) {
+              statusEl.innerHTML = '⚠️ Nenhum dado para esta cidade.';
+              statusEl.style.color = '#e67e22';
+              btnPdf.disabled = false;
+              return;
+          }
+
+          // 2. Renderiza o mapa do município diretamente (sem Google tiles)
+          statusEl.innerHTML = '⏳ Renderizando mapa do município...';
+          let imgData = null;
+          try {
+              imgData = renderizarMapaMunicipioPDF(cidadeSelecionada, 900, 600);
+          } catch (e) {
+              console.warn('Erro ao renderizar mapa:', e);
+          }
+
+          // 3. Gera o PDF
+          statusEl.innerHTML = '⏳ Gerando PDF...';
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF('p', 'mm', 'a4');
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const margin = 15;
+          let yPos = margin;
+
+          // --- Cabeçalho ---
+          doc.setFillColor(231, 76, 60);
+          doc.rect(0, 0, pageWidth, 35, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(18);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Relatorio Eleitoral - Mapa de Calor', pageWidth / 2, 14, { align: 'center' });
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Estado do Rio Grande do Sul', pageWidth / 2, 22, { align: 'center' });
+          doc.setFontSize(9);
+          doc.text('Gerado em: ' + new Date().toLocaleDateString('pt-BR') + ' as ' + new Date().toLocaleTimeString('pt-BR'), pageWidth / 2, 30, { align: 'center' });
+          yPos = 45;
+
+          // --- Info do Candidato e Cidade ---
+          doc.setTextColor(44, 62, 80);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Candidato: ' + candidato.toUpperCase(), margin, yPos);
+          yPos += 8;
+          doc.setFontSize(13);
+          doc.text('Municipio: ' + cidadeSelecionada, margin, yPos);
+          yPos += 10;
+
+          // --- Resumo ---
+          doc.setFillColor(241, 248, 233);
+          doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 18, 3, 3, 'F');
+          doc.setDrawColor(39, 174, 96);
+          doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 18, 3, 3, 'S');
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(39, 174, 96);
+          doc.text('Total de Votos: ' + totalVotosCidade.toLocaleString('pt-BR'), margin + 5, yPos + 8);
+          doc.text('Locais de Votacao: ' + dadosCidade.length, margin + 5, yPos + 14);
+          yPos += 25;
+
+          // --- Imagem do Mapa ---
+          if (imgData) {
+              doc.setTextColor(44, 62, 80);
+              doc.setFontSize(11);
+              doc.setFont('helvetica', 'bold');
+              doc.text('Mapa de Calor - ' + cidadeSelecionada, margin, yPos);
+              yPos += 5;
+
+              const imgWidth = pageWidth - 2 * margin;
+              const imgHeight = imgWidth * 0.55;
+              
+              if (yPos + imgHeight > pageHeight - 20) {
+                  doc.addPage();
+                  yPos = margin;
+              }
+              doc.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight);
+              doc.setDrawColor(200, 200, 200);
+              doc.rect(margin, yPos, imgWidth, imgHeight, 'S');
+              yPos += imgHeight + 8;
+          } else {
+              doc.setTextColor(150, 150, 150);
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'italic');
+              doc.text('(Imagem do mapa nao disponivel)', margin, yPos);
+              yPos += 8;
+          }
+
+          // --- Tabela de Locais de Votação ---
+          if (yPos > pageHeight - 40) {
+              doc.addPage();
+              yPos = margin;
+          }
+          doc.setTextColor(44, 62, 80);
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Locais de Votacao - Votos em Ordem Decrescente', margin, yPos);
+          yPos += 3;
+
+          const tabelaDados = dadosCidade.map((item, idx) => [
+              (idx + 1).toString(),
+              item.nm_local_votacao || 'Local ' + item.id_local,
+              item.qt_votos.toLocaleString('pt-BR')
+          ]);
+
+          doc.autoTable({
+              startY: yPos,
+              head: [['#', 'Local de Votacao', 'Votos']],
+              body: tabelaDados,
+              margin: { left: margin, right: margin },
+              styles: {
+                  fontSize: 8,
+                  cellPadding: 2,
+                  overflow: 'linebreak',
+                  lineColor: [200, 200, 200],
+                  lineWidth: 0.2
+              },
+              headStyles: {
+                  fillColor: [231, 76, 60],
+                  textColor: [255, 255, 255],
+                  fontStyle: 'bold',
+                  fontSize: 9
+              },
+              alternateRowStyles: {
+                  fillColor: [250, 250, 250]
+              },
+              columnStyles: {
+                  0: { cellWidth: 10, halign: 'center' },
+                  1: { cellWidth: 'auto' },
+                  2: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }
+              },
+              didDrawPage: function(data) {
+                  // Rodapé em cada página
+                  doc.setFontSize(7);
+                  doc.setTextColor(150);
+                  doc.text(
+                      'Mapa Eleitoral RS - Pagina ' + doc.internal.getCurrentPageInfo().pageNumber + ' de ' + doc.internal.getNumberOfPages(),
+                      pageWidth / 2, pageHeight - 8, { align: 'center' }
+                  );
+              }
+          });
+
+          // --- Rodapé final ---
+          const totalPages = doc.internal.getNumberOfPages();
+          for (let i = 1; i <= totalPages; i++) {
+              doc.setPage(i);
+              doc.setFontSize(7);
+              doc.setTextColor(150);
+              doc.text(
+                  'Mapa Eleitoral RS - Pagina ' + i + ' de ' + totalPages,
+                  pageWidth / 2, pageHeight - 8, { align: 'center' }
+              );
+          }
+
+          // 5. Salva o PDF
+          const nomeArquivo = 'relatorio_' + cidadeSelecionada.replace(/\s+/g, '_') + '_' + candidato.replace(/\s+/g, '_') + '.pdf';
+          doc.save(nomeArquivo);
+
+          statusEl.innerHTML = '✅ PDF exportado com sucesso!';
+          statusEl.style.color = '#27ae60';
+      } catch (err) {
+          console.error('Erro ao gerar PDF:', err);
+          statusEl.innerHTML = '❌ Erro: ' + err.message;
+          statusEl.style.color = '#e74c3c';
+      } finally {
+          btnPdf.disabled = !document.getElementById('select-cidade-pdf').value;
+      }
+  }
+
+  // Exporta relatório PDF estadual (todos os dados)
+  async function exportarRelatorioPDFEstado() {
+      const candidato = document.getElementById('inputCandidatoCalor').value.trim();
+      if (!candidato || !dadosLocaisAtuais || dadosLocaisAtuais.length === 0) {
+          alert('Nenhum candidato pesquisado ou dados indisponiveis.');
+          return;
+      }
+
+      const statusEl = document.getElementById('pdf-status');
+      const btnPdf = document.getElementById('btn-exportar-pdf-estado');
+      btnPdf.disabled = true;
+      statusEl.innerHTML = '⏳ Preparando relatorio estadual...';
+      statusEl.style.color = '#3498db';
+
+      try {
+          // Renderiza o mapa estadual diretamente (sem Google tiles)
+          statusEl.innerHTML = '⏳ Renderizando mapa estadual...';
+          let imgData = null;
+          try {
+              imgData = renderizarMapaEstadualPDF(900, 700);
+          } catch (e) {
+              console.warn('Erro ao renderizar mapa estadual:', e);
+          }
+
+          statusEl.innerHTML = '⏳ Gerando PDF estadual...';
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF('p', 'mm', 'a4');
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const margin = 15;
+          let yPos = margin;
+
+          const totalVotos = dadosLocaisAtuais.reduce((sum, item) => sum + item.qt_votos, 0);
+
+          // --- Cabeçalho ---
+          doc.setFillColor(142, 68, 173);
+          doc.rect(0, 0, pageWidth, 35, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(18);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Relatorio Eleitoral Estadual', pageWidth / 2, 14, { align: 'center' });
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Rio Grande do Sul - Visao Completa', pageWidth / 2, 22, { align: 'center' });
+          doc.setFontSize(9);
+          doc.text('Gerado em: ' + new Date().toLocaleDateString('pt-BR') + ' as ' + new Date().toLocaleTimeString('pt-BR'), pageWidth / 2, 30, { align: 'center' });
+          yPos = 45;
+
+          // --- Info do Candidato ---
+          doc.setTextColor(44, 62, 80);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Candidato: ' + candidato.toUpperCase(), margin, yPos);
+          yPos += 10;
+
+          // --- Resumo Geral ---
+          doc.setFillColor(232, 218, 239);
+          doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 18, 3, 3, 'F');
+          doc.setDrawColor(142, 68, 173);
+          doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 18, 3, 3, 'S');
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(142, 68, 173);
+          doc.text('Total de Votos no Estado: ' + totalVotos.toLocaleString('pt-BR'), margin + 5, yPos + 8);
+          doc.text('Total de Locais: ' + dadosLocaisAtuais.length, margin + 5, yPos + 14);
+          yPos += 25;
+
+          // --- Imagem do Mapa ---
+          if (imgData) {
+              doc.setTextColor(44, 62, 80);
+              doc.setFontSize(11);
+              doc.setFont('helvetica', 'bold');
+              doc.text('Mapa de Calor Estadual', margin, yPos);
+              yPos += 5;
+              const imgWidth = pageWidth - 2 * margin;
+              const imgHeight = imgWidth * 0.55;
+              doc.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight);
+              doc.setDrawColor(200, 200, 200);
+              doc.rect(margin, yPos, imgWidth, imgHeight, 'S');
+              yPos += imgHeight + 8;
+          } else {
+              doc.setTextColor(150, 150, 150);
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'italic');
+              doc.text('(Imagem do mapa nao disponivel)', margin, yPos);
+              yPos += 8;
+          }
+
+          // --- Resumo por Município ---
+          if (yPos > pageHeight - 40) { doc.addPage(); yPos = margin; }
+          doc.setTextColor(44, 62, 80);
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Resumo por Municipio - Ordem Decrescente de Votos', margin, yPos);
+          yPos += 3;
+
+          // Agrupa por município
+          const resumoMunicipios = {};
+          dadosLocaisAtuais.forEach(item => {
+              const mun = item.nm_municipio || 'SEM MUNICIPIO';
+              if (!resumoMunicipios[mun]) resumoMunicipios[mun] = { votos: 0, locais: 0 };
+              resumoMunicipios[mun].votos += item.qt_votos;
+              resumoMunicipios[mun].locais += 1;
+          });
+          const resumoOrdenado = Object.entries(resumoMunicipios)
+              .sort((a, b) => b[1].votos - a[1].votos)
+              .map((entry, idx) => [
+                  (idx + 1).toString(),
+                  entry[0],
+                  entry[1].locais.toString(),
+                  entry[1].votos.toLocaleString('pt-BR')
+              ]);
+
+          doc.autoTable({
+              startY: yPos,
+              head: [['#', 'Municipio', 'Locais', 'Votos']],
+              body: resumoOrdenado,
+              margin: { left: margin, right: margin },
+              styles: { fontSize: 7, cellPadding: 2, lineColor: [200,200,200], lineWidth: 0.2 },
+              headStyles: { fillColor: [142, 68, 173], textColor: [255,255,255], fontStyle: 'bold', fontSize: 8 },
+              alternateRowStyles: { fillColor: [250, 250, 250] },
+              columnStyles: {
+                  0: { cellWidth: 10, halign: 'center' },
+                  1: { cellWidth: 'auto' },
+                  2: { cellWidth: 18, halign: 'center' },
+                  3: { cellWidth: 25, halign: 'right', fontStyle: 'bold' }
+              }
+          });
+
+          // --- Rodapé ---
+          const totalPages = doc.internal.getNumberOfPages();
+          for (let i = 1; i <= totalPages; i++) {
+              doc.setPage(i);
+              doc.setFontSize(7);
+              doc.setTextColor(150);
+              doc.text(
+                  'Mapa Eleitoral RS - Pagina ' + i + ' de ' + totalPages,
+                  pageWidth / 2, pageHeight - 8, { align: 'center' }
+              );
+          }
+
+          const nomeArquivo = 'relatorio_RS_estadual_' + candidato.replace(/\s+/g, '_') + '.pdf';
+          doc.save(nomeArquivo);
+
+          statusEl.innerHTML = '✅ PDF estadual exportado!';
+          statusEl.style.color = '#27ae60';
+      } catch (err) {
+          console.error('Erro ao gerar PDF estadual:', err);
+          statusEl.innerHTML = '❌ Erro: ' + err.message;
+          statusEl.style.color = '#e74c3c';
+      } finally {
+          btnPdf.disabled = false;
+      }
+  }
+
   // Função para limpar o mapa de calor
   function limparMapaCalor() {
       sourceHeatmap.clear();
@@ -949,6 +1723,12 @@ th { background-color: #f8f8f8; font-weight: bold; }
       document.getElementById('lista-locais-container').classList.remove('visible');
       document.getElementById('lista-locais').innerHTML = '';
       dadosLocaisAtuais = [];
+
+      // Esconde e reseta o painel de exportação PDF
+      document.getElementById('export-pdf-container').classList.remove('visible');
+      document.getElementById('select-cidade-pdf').innerHTML = '<option value="">-- Selecione uma cidade --</option>';
+      document.getElementById('btn-exportar-pdf').disabled = true;
+      document.getElementById('pdf-status').textContent = '';
   }
 
   // Permite pressionar Enter para buscar
