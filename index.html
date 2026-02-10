@@ -410,6 +410,97 @@ th { background-color: #f8f8f8; font-weight: bold; }
     margin-top: 5px;
     text-align: center;
 }
+
+/* ============================================ */
+/* DASHBOARD PERFIL DO ELEITORADO              */
+/* ============================================ */
+#dashboard-perfil {
+    position: fixed;
+    top: 0;
+    right: 0;
+    z-index: 2999;
+    background: white;
+    padding: 14px;
+    border-radius: 0;
+    box-shadow: -3px 0 10px rgba(0,0,0,0.3);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 380px;
+    height: 100%;
+    overflow-y: auto;
+    display: none;
+    box-sizing: border-box;
+}
+#dashboard-perfil.visible { display: block; }
+#dashboard-perfil.collapsed {
+    width: 40px; padding: 0; overflow: hidden;
+}
+#dashboard-perfil.collapsed #dashboard-perfil-content { display: none; }
+#dashboard-perfil.collapsed #btn-toggle-dash { writing-mode: vertical-rl; text-orientation: mixed; }
+#dashboard-perfil-content { display: block; }
+#btn-toggle-dash {
+    background: #3498db; color: white; border: none;
+    border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px;
+    white-space: nowrap; transition: all 0.2s;
+}
+#btn-toggle-dash:hover { background: #2980b9; }
+#dashboard-perfil-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 6px;
+}
+#dashboard-perfil-header h3 { margin: 0; font-size: 13px; color: #2c3e50; }
+.dash-nivel-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+.dash-nivel-tabs button {
+    flex: 1; padding: 6px 4px; border: 1px solid #ddd;
+    background: #f8f8f8; border-radius: 4px; cursor: pointer;
+    font-size: 10px; font-weight: bold; color: #666; transition: all 0.2s;
+}
+.dash-nivel-tabs button.active { background: #3498db; color: white; border-color: #3498db; }
+.dash-nivel-tabs button:hover:not(.active) { background: #e8f4fd; }
+#dash-nivel-info {
+    font-size: 10px; color: #7f8c8d; margin-bottom: 8px;
+    padding: 4px 8px; background: #f0f8ff; border-radius: 4px; text-align: center;
+}
+.dash-resumo-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+.dash-card {
+    background: #f8f9fa; border-radius: 6px; padding: 8px;
+    text-align: center; border-left: 3px solid #3498db;
+}
+.dash-card.obrig { border-left-color: #27ae60; }
+.dash-card.facul { border-left-color: #e67e22; }
+.dash-card.masc { border-left-color: #2980b9; }
+.dash-card.fem { border-left-color: #e91e8b; }
+.dash-card .dash-card-valor { font-size: 16px; font-weight: bold; color: #2c3e50; display: block; }
+.dash-card .dash-card-label { font-size: 9px; color: #7f8c8d; margin-top: 2px; }
+.dash-chart-section { margin-bottom: 10px; }
+.dash-chart-section h4 {
+    margin: 0 0 4px 0; font-size: 11px; color: #2c3e50;
+    border-bottom: 1px solid #eee; padding-bottom: 3px;
+}
+.dash-chart-container { position: relative; width: 100%; height: 180px; }
+.dash-loading { text-align: center; padding: 20px; color: #999; font-size: 11px; }
+#dash-select-municipio, #dash-select-local {
+    width: 100%; padding: 5px; border: 1px solid #ccc;
+    border-radius: 4px; font-size: 10px; margin-bottom: 6px;
+    display: none; box-sizing: border-box;
+}
+
+/* Botão Exportar Perfil */
+.btn-exportar-perfil {
+    width: 100%; padding: 8px 12px; margin-top: 10px;
+    background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+    color: white; border: none; border-radius: 4px; cursor: pointer;
+    font-size: 11px; font-weight: bold; transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-exportar-perfil:hover { background: linear-gradient(135deg, #219a52 0%, #27ae60 100%); }
+.btn-exportar-perfil:disabled { background: #bdc3c7; cursor: not-allowed; }
+#dash-export-status {
+    font-size: 10px; color: #666; margin-top: 4px; text-align: center;
+}
         </style>
 
         <style>
@@ -459,6 +550,35 @@ th { background-color: #f8f8f8; font-weight: bold; }
                 <button id="btn-exportar-pdf" onclick="exportarRelatorioPDF()" disabled>📄 Exportar PDF da Cidade</button>
                 <button id="btn-exportar-pdf-estado" onclick="exportarRelatorioPDFEstado()">📄 Exportar PDF Estadual</button>
                 <div id="pdf-status"></div>
+            </div>
+        </div>
+
+        <!-- Dashboard Perfil do Eleitorado -->
+        <div id="dashboard-perfil">
+            <div id="dashboard-perfil-header">
+                <h3>📊 Perfil do Eleitorado</h3>
+                <button id="btn-toggle-dash" onclick="toggleDashboard()">◀</button>
+            </div>
+            <div id="dashboard-perfil-content">
+            <div class="dash-nivel-tabs">
+                <button id="tab-estado" class="active" onclick="trocarNivelDashboard('estado')">🏛️ Estado</button>
+                <button id="tab-municipio" onclick="trocarNivelDashboard('municipio')">🏙️ Município</button>
+                <button id="tab-local" onclick="trocarNivelDashboard('local')">📍 Local</button>
+            </div>
+            <select id="dash-select-municipio" onchange="carregarDashboardMunicipio(this.value)">
+                <option value="">-- Selecione um município --</option>
+            </select>
+            <select id="dash-select-local" onchange="carregarDashboardLocal(this.value, this.options[this.selectedIndex].dataset.municipio)">
+                <option value="">-- Selecione um local de votação --</option>
+            </select>
+            <div id="dash-nivel-info">Nível: Estado do Rio Grande do Sul</div>
+            <div id="dash-content">
+                <div class="dash-loading">Pesquise um candidato para ver o perfil do eleitorado.</div>
+            </div>
+            <button class="btn-exportar-perfil" id="btn-exportar-perfil" onclick="exportarPerfilEleitoradoPDF()">
+                📄 Exportar Perfil em PDF
+            </button>
+            <div id="dash-export-status"></div>
             </div>
         </div>
         
@@ -574,6 +694,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
 <script>
   // Inicializa o cliente Supabase
@@ -916,6 +1037,10 @@ th { background-color: #f8f8f8; font-weight: bold; }
 
       // Popula o select de cidades para exportação PDF
       popularSelectCidades();
+
+      // Abre o dashboard e carrega dados estaduais
+      abrirDashboard();
+      carregarDashboardEstado();
   }
 
   // Renderiza a lista de locais (usada pelo filtro também)
@@ -997,6 +1122,32 @@ th { background-color: #f8f8f8; font-weight: bold; }
 
           // Destaca visualmente o local (opcional - cria um pulso)
           destacarLocal(coords);
+
+          // Configura UI do dashboard para nível local SEM sobrescrever conteúdo
+          dashboardNivelAtual = 'local';
+          document.querySelectorAll('.dash-nivel-tabs button').forEach(b => b.classList.remove('active'));
+          document.getElementById('tab-local').classList.add('active');
+          const selMun = document.getElementById('dash-select-municipio');
+          const selLocal = document.getElementById('dash-select-local');
+          selMun.style.display = 'block';
+          selLocal.style.display = 'block';
+          popularSelectMunicipiosDash();
+
+          // Encontra o município deste local e seleciona no dropdown
+          const localData = dadosLocaisAtuais.find(d => String(d.id_local) === String(idLocal));
+          if (localData && localData.nm_municipio) {
+              selMun.value = localData.nm_municipio;
+              popularSelectLocaisDash(localData.nm_municipio);
+          }
+          // Seleciona pelo nm_local_votacao no dropdown
+          if (localData && localData.nm_local_votacao) {
+              selLocal.value = localData.nm_local_votacao;
+          }
+
+          // Agora carrega os dados usando nm_local_votacao e nm_municipio
+          if (localData) {
+              carregarDashboardLocal(localData.nm_local_votacao, localData.nm_municipio);
+          }
       } else {
           console.warn('Coordenadas não encontradas para:', idLocal);
       }
@@ -1529,6 +1680,30 @@ th { background-color: #f8f8f8; font-weight: bold; }
               }
           });
 
+          // --- Perfil do Eleitorado ---
+          try {
+              statusEl.innerHTML = '⏳ Carregando perfil do eleitorado...';
+              let perfilData = dashPerfilCache['mun_' + cidadeSelecionada];
+              if (!perfilData) {
+                  perfilData = await consultarPerfilEleitorado('municipio', cidadeSelecionada);
+              }
+              if (perfilData && perfilData.length > 0) {
+                  let yPosPerfil = doc.lastAutoTable ? doc.lastAutoTable.finalY + 10 : margin;
+                  if (yPosPerfil > pageHeight - 60) { doc.addPage(); yPosPerfil = margin; }
+                  doc.setTextColor(44, 62, 80);
+                  doc.setFontSize(12);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text('Perfil do Eleitorado - ' + cidadeSelecionada, margin, yPosPerfil);
+                  yPosPerfil += 6;
+                  const perfilImgs = renderizarPerfilParaPDF(perfilData);
+                  adicionarPerfilAoPDF(doc, perfilImgs, margin, pageWidth, pageHeight, yPosPerfil);
+              } else {
+                  console.warn('Sem dados de perfil para o PDF de', cidadeSelecionada);
+              }
+          } catch (perfilErr) {
+              console.warn('Erro ao adicionar perfil ao PDF:', perfilErr);
+          }
+
           // --- Rodapé final ---
           const totalPages = doc.internal.getNumberOfPages();
           for (let i = 1; i <= totalPages; i++) {
@@ -1685,6 +1860,30 @@ th { background-color: #f8f8f8; font-weight: bold; }
               }
           });
 
+          // --- Perfil do Eleitorado Estadual ---
+          try {
+              statusEl.innerHTML = '⏳ Carregando perfil estadual...';
+              let perfilData = dashPerfilCache['estado'];
+              if (!perfilData) {
+                  perfilData = await consultarPerfilEleitorado('estado');
+              }
+              if (perfilData && perfilData.length > 0) {
+                  doc.addPage();
+                  let yPosPerfil = margin;
+                  doc.setTextColor(44, 62, 80);
+                  doc.setFontSize(12);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text('Perfil do Eleitorado - Rio Grande do Sul', margin, yPosPerfil);
+                  yPosPerfil += 6;
+                  const perfilImgs = renderizarPerfilParaPDF(perfilData);
+                  adicionarPerfilAoPDF(doc, perfilImgs, margin, pageWidth, pageHeight, yPosPerfil);
+              } else {
+                  console.warn('Sem dados de perfil estadual para o PDF');
+              }
+          } catch (perfilErr) {
+              console.warn('Erro ao adicionar perfil ao PDF:', perfilErr);
+          }
+
           // --- Rodapé ---
           const totalPages = doc.internal.getNumberOfPages();
           for (let i = 1; i <= totalPages; i++) {
@@ -1729,6 +1928,13 @@ th { background-color: #f8f8f8; font-weight: bold; }
       document.getElementById('select-cidade-pdf').innerHTML = '<option value="">-- Selecione uma cidade --</option>';
       document.getElementById('btn-exportar-pdf').disabled = true;
       document.getElementById('pdf-status').textContent = '';
+
+      // Esconde dashboard e limpa cache
+      document.getElementById('dashboard-perfil').classList.remove('visible');
+      dashPerfilCache = {};
+      document.getElementById('dash-content').innerHTML = '<div class="dash-loading">Pesquise um candidato para ver o perfil do eleitorado.</div>';
+      document.getElementById('dash-select-municipio').innerHTML = '<option value="">-- Selecione um município --</option>';
+      document.getElementById('dash-select-local').innerHTML = '<option value="">-- Selecione um local --</option>';
   }
 
   // Permite pressionar Enter para buscar
@@ -2241,6 +2447,699 @@ th { background-color: #f8f8f8; font-weight: bold; }
           configurarLegendaRenda();
       }, 2000); // Aguarda o mapa carregar
   });
+
+  // ============================================
+  // DASHBOARD - PERFIL DO ELEITORADO
+  // ============================================
+
+  let dashboardCharts = {};
+  let dashboardNivelAtual = 'estado';
+  let dashPerfilCache = {};
+
+  // ============================================
+  // CONSULTA UNIVERSAL COM FALLBACK
+  // ============================================
+  // Tenta RPC/View primeiro; se falhar, consulta perfil_eleitorado_2024 direto
+  async function consultarPerfilEleitorado(tipo, valor) {
+      // 1. Tenta materialized views (instantâneo, sem timeout)
+      try {
+          if (tipo === 'estado') {
+              const { data, error } = await supabaseClient.from('perfil_resumo_estado').select('dimensao, categoria, total');
+              if (!error && data && data.length > 0) return data;
+          } else if (tipo === 'municipio') {
+              // Usa materialized view perfil_resumo_municipios (pré-computada)
+              const { data, error } = await supabaseClient
+                  .from('perfil_resumo_municipios')
+                  .select('dimensao, categoria, total')
+                  .ilike('nm_municipio', valor);
+              if (!error && data && data.length > 0) return data;
+              // Fallback: tenta RPC
+              const { data: d2, error: e2 } = await supabaseClient.rpc('perfil_resumo_municipio', { p_municipio: valor });
+              if (!e2 && d2 && d2.length > 0) return d2;
+          } else if (tipo === 'local') {
+              const { data, error } = await supabaseClient.rpc('perfil_resumo_local', { p_nm_local_votacao: String(valor.nm_local_votacao), p_nm_municipio: String(valor.nm_municipio) });
+              if (!error && data && data.length > 0) return data;
+          }
+      } catch (e) {
+          console.warn('RPC/View nao disponivel, usando consulta direta:', e);
+      }
+
+      // 2. Fallback: consulta tabela perfil_eleitorado_2024 diretamente
+      console.log('Fallback: consultando perfil_eleitorado_2024 diretamente para', tipo, valor);
+      if (tipo === 'estado') {
+          throw new Error('Materialized view perfil_resumo_estado nao encontrada. Execute o SQL no Supabase.');
+      }
+
+      let allRows = [];
+      let offset = 0;
+      const pageSize = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+          let query = supabaseClient
+              .from('perfil_eleitorado_2024')
+              .select('ds_genero, ds_estado_civil, ds_faixa_etaria, ds_grau_escolaridade, tp_obrigatoriedade_voto, qt_eleitores_perfil, nr_secao');
+
+          if (tipo === 'municipio') {
+              query = query.ilike('nm_municipio', valor);
+          } else if (tipo === 'local') {
+              query = query.eq('nm_local_votacao', String(valor.nm_local_votacao)).eq('nm_municipio', String(valor.nm_municipio));
+          }
+
+          const { data, error } = await query.range(offset, offset + pageSize - 1);
+          if (error) throw error;
+          if (data && data.length > 0) {
+              allRows = allRows.concat(data);
+              offset += pageSize;
+              hasMore = data.length === pageSize;
+          } else {
+              hasMore = false;
+          }
+      }
+
+      if (allRows.length === 0) return [];
+      return agregarPerfilEleitorado(allRows);
+  }
+
+  // Agrega rows crus em formato {dimensao, categoria, total}
+  function agregarPerfilEleitorado(rows) {
+      const result = [];
+      const dims = {
+          genero: 'ds_genero',
+          estado_civil: 'ds_estado_civil',
+          faixa_etaria: 'ds_faixa_etaria',
+          escolaridade: 'ds_grau_escolaridade'
+      };
+      for (const [dim, col] of Object.entries(dims)) {
+          const agg = {};
+          rows.forEach(r => {
+              const cat = r[col] || 'NAO INFORMADO';
+              agg[cat] = (agg[cat] || 0) + Number(r.qt_eleitores_perfil || 0);
+          });
+          for (const [cat, total] of Object.entries(agg)) {
+              result.push({ dimensao: dim, categoria: cat, total: total });
+          }
+      }
+      // Obrigatoriedade (campo já contém texto completo: 'Obrigatório' / 'Facultativo')
+      const aggObrig = {};
+      rows.forEach(r => {
+          const cat = r.tp_obrigatoriedade_voto || 'NAO INFORMADO';
+          aggObrig[cat] = (aggObrig[cat] || 0) + Number(r.qt_eleitores_perfil || 0);
+      });
+      for (const [cat, total] of Object.entries(aggObrig)) {
+          result.push({ dimensao: 'obrigatoriedade', categoria: cat, total: total });
+      }
+      // Total de seções (distintas)
+      const secoesSet = new Set();
+      rows.forEach(r => {
+          const sec = r.nr_secao;
+          if (sec !== undefined && sec !== null) secoesSet.add(String(sec));
+      });
+      if (secoesSet.size > 0) {
+          result.push({ dimensao: 'total_secoes', categoria: 'Seções', total: secoesSet.size });
+      }
+      return result;
+  }
+
+  function toggleDashboard() {
+      const dash = document.getElementById('dashboard-perfil');
+      const btn = document.getElementById('btn-toggle-dash');
+      if (dash.classList.contains('collapsed')) {
+          dash.classList.remove('collapsed');
+          btn.textContent = '◀';
+      } else {
+          dash.classList.add('collapsed');
+          btn.textContent = '▶';
+      }
+  }
+
+  function fecharDashboard() {
+      document.getElementById('dashboard-perfil').classList.remove('visible');
+  }
+
+  function abrirDashboard() {
+      const dash = document.getElementById('dashboard-perfil');
+      dash.classList.add('visible');
+      dash.classList.remove('collapsed');
+      document.getElementById('btn-toggle-dash').textContent = '◀';
+  }
+
+  function trocarNivelDashboard(nivel) {
+      dashboardNivelAtual = nivel;
+      document.querySelectorAll('.dash-nivel-tabs button').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + nivel).classList.add('active');
+      const selMun = document.getElementById('dash-select-municipio');
+      const selLocal = document.getElementById('dash-select-local');
+      if (nivel === 'estado') {
+          selMun.style.display = 'none';
+          selLocal.style.display = 'none';
+          carregarDashboardEstado();
+      } else if (nivel === 'municipio') {
+          selMun.style.display = 'block';
+          selLocal.style.display = 'none';
+          popularSelectMunicipiosDash();
+          if (selMun.value) carregarDashboardMunicipio(selMun.value);
+          else document.getElementById('dash-content').innerHTML = '<div class="dash-loading">Selecione um município acima.</div>';
+          document.getElementById('dash-nivel-info').textContent = 'Nível: Município';
+      } else if (nivel === 'local') {
+          selMun.style.display = 'block';
+          selLocal.style.display = 'block';
+          popularSelectMunicipiosDash();
+          // Popula locais se já tem município selecionado
+          if (selMun.value) popularSelectLocaisDash(selMun.value);
+          if (selLocal.value) {
+              const selLocalEl = document.getElementById('dash-select-local');
+              const selectedOpt = selLocalEl.options[selLocalEl.selectedIndex];
+              carregarDashboardLocal(selLocal.value, selectedOpt ? selectedOpt.dataset.municipio : '');
+          }
+          else document.getElementById('dash-content').innerHTML = '<div class="dash-loading">Selecione município e local acima.</div>';
+          document.getElementById('dash-nivel-info').textContent = 'Nível: Local de Votação';
+      }
+  }
+
+  function popularSelectMunicipiosDash() {
+      const sel = document.getElementById('dash-select-municipio');
+      if (sel.options.length > 1) return;
+      if (!dadosLocaisAtuais || dadosLocaisAtuais.length === 0) return;
+      const muns = [...new Set(dadosLocaisAtuais.map(d => d.nm_municipio).filter(Boolean))].sort();
+      muns.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); });
+  }
+
+  function popularSelectLocaisDash(municipio) {
+      const sel = document.getElementById('dash-select-local');
+      sel.innerHTML = '<option value="">-- Selecione um local --</option>';
+      if (!municipio || !dadosLocaisAtuais) return;
+      const locais = dadosLocaisAtuais
+          .filter(d => (d.nm_municipio || '').toUpperCase() === municipio.toUpperCase())
+          .sort((a, b) => b.qt_votos - a.qt_votos);
+      // Agrupa locais por nm_local_votacao para evitar duplicatas de seções
+      const locaisAgrupados = {};
+      locais.forEach(l => {
+          const key = l.nm_local_votacao || l.id_local;
+          if (!locaisAgrupados[key]) {
+              locaisAgrupados[key] = { nm_local_votacao: l.nm_local_votacao, nm_municipio: l.nm_municipio, qt_votos: 0 };
+          }
+          locaisAgrupados[key].qt_votos += l.qt_votos;
+      });
+      Object.values(locaisAgrupados)
+          .sort((a, b) => b.qt_votos - a.qt_votos)
+          .forEach(l => {
+              const o = document.createElement('option');
+              // Armazena nm_local_votacao como value (usado para buscar perfil)
+              o.value = l.nm_local_votacao;
+              o.dataset.municipio = l.nm_municipio;
+              o.textContent = l.nm_local_votacao + ' (' + l.qt_votos.toLocaleString('pt-BR') + ' votos)';
+              sel.appendChild(o);
+          });
+  }
+
+  // Quando muda município no dashboard, popula locais também
+  document.addEventListener('DOMContentLoaded', function() {
+      const selMun = document.getElementById('dash-select-municipio');
+      if (selMun) {
+          selMun.addEventListener('change', function() {
+              if (dashboardNivelAtual === 'local') {
+                  popularSelectLocaisDash(this.value);
+              }
+          });
+      }
+  });
+
+  async function carregarDashboardEstado() {
+      document.getElementById('dash-nivel-info').textContent = 'Nível: Estado do Rio Grande do Sul';
+      if (dashPerfilCache['estado']) {
+          renderizarDashboard(dashPerfilCache['estado'], 'Rio Grande do Sul');
+          return;
+      }
+      document.getElementById('dash-content').innerHTML = '<div class="dash-loading">⏳ Carregando perfil estadual...</div>';
+      try {
+          const data = await consultarPerfilEleitorado('estado');
+          if (data && data.length > 0) {
+              dashPerfilCache['estado'] = data;
+              renderizarDashboard(data, 'Rio Grande do Sul');
+          } else {
+              document.getElementById('dash-content').innerHTML = '<div class="dash-loading" style="color:#e67e22;">⚠️ Nenhum dado encontrado. Verifique se a tabela perfil_eleitorado_2024 existe.</div>';
+          }
+      } catch (err) {
+          console.error('Erro dashboard estado:', err);
+          document.getElementById('dash-content').innerHTML = '<div class="dash-loading" style="color:#e74c3c;">❌ Erro: ' + err.message + '<br><small>Crie a materialized view perfil_resumo_estado no Supabase SQL Editor.</small></div>';
+      }
+  }
+
+  async function carregarDashboardMunicipio(municipio) {
+      if (!municipio) return;
+      document.getElementById('dash-nivel-info').textContent = 'Nível: ' + municipio;
+      if (dashboardNivelAtual === 'local') popularSelectLocaisDash(municipio);
+      const cacheKey = 'mun_' + municipio;
+      if (dashPerfilCache[cacheKey]) {
+          renderizarDashboard(dashPerfilCache[cacheKey], municipio);
+          return;
+      }
+      document.getElementById('dash-content').innerHTML = '<div class="dash-loading">⏳ Carregando perfil de ' + municipio + '...</div>';
+      try {
+          const data = await consultarPerfilEleitorado('municipio', municipio);
+          if (data && data.length > 0) {
+              dashPerfilCache[cacheKey] = data;
+              renderizarDashboard(data, municipio);
+          } else {
+              document.getElementById('dash-content').innerHTML = '<div class="dash-loading" style="color:#e67e22;">⚠️ Nenhum dado de perfil encontrado para ' + municipio + '.</div>';
+          }
+      } catch (err) {
+          console.error('Erro dashboard município:', err);
+          document.getElementById('dash-content').innerHTML = '<div class="dash-loading" style="color:#e74c3c;">❌ Erro: ' + err.message + '</div>';
+      }
+  }
+
+  async function carregarDashboardLocal(nmLocalVotacao, nmMunicipio) {
+      if (!nmLocalVotacao) return;
+      // Se nmMunicipio não foi passado, tenta pegar do select
+      if (!nmMunicipio) {
+          const selLocal = document.getElementById('dash-select-local');
+          const selectedOption = selLocal.options[selLocal.selectedIndex];
+          nmMunicipio = selectedOption ? selectedOption.dataset.municipio : '';
+      }
+      const label = nmLocalVotacao;
+      document.getElementById('dash-nivel-info').textContent = 'Nível: ' + label;
+
+      // Conta seções do mapa layer para este local de votação
+      let totalSecoesLocal = 0;
+      try {
+          const source = lyr_locaisdevotao_1.getSource();
+          const features = source.getFeatures();
+          // Conta features distintas (cada feature = 1 seção) que pertencem a este local
+          // Usamos nm_municipio e comparamos coordenadas ou agrupamos por ID_LOCAL prefix
+          const secoesSet = new Set();
+          features.forEach(feat => {
+              const munFeat = (feat.get('municipios_todos_nome') || '').toUpperCase();
+              if (munFeat === (nmMunicipio || '').toUpperCase()) {
+                  // Compara pelo ID_LOCAL - mesmo CD_TSE = mesmo local de votação
+                  const idLocal = feat.get('ID_LOCAL') || feat.get('id_local') || '';
+                  const secao = feat.get('secao') || feat.get('SECAO') || '';
+                  // Verifica se é o mesmo local usando dadosLocaisAtuais
+                  const localInfo = dadosLocaisAtuais && dadosLocaisAtuais.find(d => String(d.id_local) === String(idLocal));
+                  if (localInfo && (localInfo.nm_local_votacao || '').toUpperCase() === nmLocalVotacao.toUpperCase()) {
+                      secoesSet.add(idLocal); // cada ID_LOCAL é único por seção
+                  }
+              }
+          });
+          totalSecoesLocal = secoesSet.size;
+      } catch (e) {
+          console.warn('Não foi possível contar seções do mapa:', e);
+      }
+
+      const extraInfo = totalSecoesLocal > 0 ? { totalSecoes: totalSecoesLocal } : null;
+      const cacheKey = 'loc_' + nmLocalVotacao + '_' + nmMunicipio;
+      if (dashPerfilCache[cacheKey]) {
+          renderizarDashboard(dashPerfilCache[cacheKey], label, extraInfo);
+          return;
+      }
+      document.getElementById('dash-content').innerHTML = '<div class="dash-loading">⏳ Carregando perfil do local...</div>';
+      try {
+          const valor = { nm_local_votacao: nmLocalVotacao, nm_municipio: nmMunicipio };
+          const data = await consultarPerfilEleitorado('local', valor);
+          if (data && data.length > 0) {
+              dashPerfilCache[cacheKey] = data;
+              renderizarDashboard(data, label, extraInfo);
+          } else {
+              document.getElementById('dash-content').innerHTML = '<div class="dash-loading" style="color:#e67e22;">⚠️ Nenhum dado de perfil encontrado para este local (' + nmLocalVotacao + ').</div>';
+          }
+      } catch (err) {
+          console.error('Erro dashboard local:', err);
+          document.getElementById('dash-content').innerHTML = '<div class="dash-loading" style="color:#e74c3c;">❌ Erro: ' + err.message + '</div>';
+      }
+  }
+
+  function agruparPorDimensao(dados) {
+      const agrupado = {};
+      dados.forEach(d => {
+          if (!agrupado[d.dimensao]) agrupado[d.dimensao] = [];
+          agrupado[d.dimensao].push({ categoria: d.categoria, total: Number(d.total) });
+      });
+      return agrupado;
+  }
+
+  function renderizarDashboard(dados, titulo, extraInfo) {
+      Object.values(dashboardCharts).forEach(c => { try { c.destroy(); } catch(e){} });
+      dashboardCharts = {};
+      const ag = agruparPorDimensao(dados);
+      const container = document.getElementById('dash-content');
+      const obrig = (ag.obrigatoriedade || []).find(d => d.categoria === 'Obrigatório');
+      const facul = (ag.obrigatoriedade || []).find(d => d.categoria === 'Facultativo');
+      const masc = (ag.genero || []).find(d => d.categoria === 'MASCULINO');
+      const fem = (ag.genero || []).find(d => d.categoria === 'FEMININO');
+      const totalEleitores = (ag.obrigatoriedade || []).reduce((s, d) => s + d.total, 0);
+      // Total de seções (pode vir da dimensão total_secoes ou do extraInfo)
+      let totalSecoes = 0;
+      const secoesData = (ag.total_secoes || []).find(d => d.categoria === 'Seções');
+      if (secoesData) totalSecoes = secoesData.total;
+      if (extraInfo && extraInfo.totalSecoes) totalSecoes = extraInfo.totalSecoes;
+      const secoesHtml = totalSecoes > 0 ? `
+          <div style="text-align:center;font-size:10px;color:#444;margin-bottom:6px;padding:4px 8px;background:#e8f4fd;border-radius:4px;">
+              🏫 Total de seções eleitorais: <strong>${totalSecoes}</strong>
+          </div>` : '';
+      container.innerHTML = `
+          ${secoesHtml}
+          <div style="text-align:center;font-size:10px;color:#666;margin-bottom:6px;">
+              Total de eleitores: <strong>${totalEleitores.toLocaleString('pt-BR')}</strong>
+          </div>
+          <div class="dash-resumo-cards">
+              <div class="dash-card obrig">
+                  <span class="dash-card-valor">${obrig ? obrig.total.toLocaleString('pt-BR') : '0'}</span>
+                  <span class="dash-card-label">✅ Obrigatório</span>
+              </div>
+              <div class="dash-card facul">
+                  <span class="dash-card-valor">${facul ? facul.total.toLocaleString('pt-BR') : '0'}</span>
+                  <span class="dash-card-label">⚡ Facultativo</span>
+              </div>
+              <div class="dash-card masc">
+                  <span class="dash-card-valor">${masc ? masc.total.toLocaleString('pt-BR') : '0'}</span>
+                  <span class="dash-card-label">♂ Masculino</span>
+              </div>
+              <div class="dash-card fem">
+                  <span class="dash-card-valor">${fem ? fem.total.toLocaleString('pt-BR') : '0'}</span>
+                  <span class="dash-card-label">♀ Feminino</span>
+              </div>
+          </div>
+          <div class="dash-chart-section">
+              <h4>🎓 Escolaridade</h4>
+              <div class="dash-chart-container"><canvas id="chart-escolaridade"></canvas></div>
+          </div>
+          <div class="dash-chart-section">
+              <h4>💍 Estado Civil</h4>
+              <div class="dash-chart-container"><canvas id="chart-estado-civil"></canvas></div>
+          </div>
+          <div class="dash-chart-section">
+              <h4>📅 Faixa Etária</h4>
+              <div class="dash-chart-container" style="height:200px;"><canvas id="chart-faixa-etaria"></canvas></div>
+          </div>
+      `;
+      renderizarChartEscolaridade(ag.escolaridade || []);
+      renderizarChartEstadoCivil(ag.estado_civil || []);
+      renderizarChartFaixaEtaria(ag.faixa_etaria || []);
+  }
+
+  const coresPizza = ['#3498db','#e74c3c','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#34495e','#16a085'];
+
+  function renderizarChartEscolaridade(dados) {
+      const sorted = dados.sort((a, b) => b.total - a.total);
+      const ctx = document.getElementById('chart-escolaridade');
+      if (!ctx) return;
+      dashboardCharts['escolaridade'] = new Chart(ctx, {
+          type: 'pie',
+          data: {
+              labels: sorted.map(d => d.categoria),
+              datasets: [{ data: sorted.map(d => d.total), backgroundColor: coresPizza }]
+          },
+          options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: {
+                  legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 10 } },
+                  tooltip: { callbacks: { label: function(ctx) {
+                      const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                      const pct = ((ctx.parsed / total) * 100).toFixed(1);
+                      return ctx.label + ': ' + ctx.parsed.toLocaleString('pt-BR') + ' (' + pct + '%)';
+                  }}}
+              }
+          }
+      });
+  }
+
+  function renderizarChartEstadoCivil(dados) {
+      const sorted = dados.sort((a, b) => b.total - a.total);
+      const ctx = document.getElementById('chart-estado-civil');
+      if (!ctx) return;
+      const cores = ['#2ecc71','#e74c3c','#3498db','#f39c12','#9b59b6','#e67e22'];
+      dashboardCharts['estado_civil'] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: sorted.map(d => d.categoria),
+              datasets: [{ label: 'Eleitores', data: sorted.map(d => d.total), backgroundColor: cores }]
+          },
+          options: {
+              responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+              plugins: { legend: { display: false } },
+              scales: {
+                  x: { ticks: { font: { size: 9 }, callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v } },
+                  y: { ticks: { font: { size: 9 } } }
+              }
+          }
+      });
+  }
+
+  function ordenarFaixaEtaria(a, b) {
+      const ordem = ['16 anos','17 anos','18 anos','19 anos','20 anos','21 a 24 anos','25 a 29 anos','30 a 34 anos','35 a 39 anos','40 a 44 anos','45 a 49 anos','50 a 54 anos','55 a 59 anos','60 a 64 anos','65 a 69 anos','70 a 74 anos','75 a 79 anos','80 a 84 anos','85 a 89 anos','90 a 94 anos','95 a 99 anos','100 anos ou mais','Inválida'];
+      return ordem.indexOf(a.categoria) - ordem.indexOf(b.categoria);
+  }
+
+  function renderizarChartFaixaEtaria(dados) {
+      const sorted = dados.sort(ordenarFaixaEtaria);
+      const ctx = document.getElementById('chart-faixa-etaria');
+      if (!ctx) return;
+      dashboardCharts['faixa_etaria'] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+              labels: sorted.map(d => d.categoria),
+              datasets: [{ label: 'Eleitores', data: sorted.map(d => d.total),
+                  backgroundColor: sorted.map((_, i) => `hsl(${200 + (i / sorted.length) * 160}, 60%, 55%)`)
+              }]
+          },
+          options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                  x: { ticks: { font: { size: 7 }, maxRotation: 90, minRotation: 45 } },
+                  y: { ticks: { font: { size: 9 }, callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(0)+'K' : v } }
+              }
+          }
+      });
+  }
+
+  // ============================================
+  // RENDERIZAR PERFIL PARA PDF (canvas manual)
+  // ============================================
+
+  function renderizarPerfilParaPDF(dados, largura, extraInfo) {
+      if (!largura) largura = 520;
+      const ag = agruparPorDimensao(dados);
+      const canvases = [];
+
+      // Total de seções (info extra para locais)
+      let totalSecoes = 0;
+      const secoesData = (ag.total_secoes || []).find(d => d.categoria === 'Seções');
+      if (secoesData) totalSecoes = secoesData.total;
+      if (extraInfo && extraInfo.totalSecoes) totalSecoes = extraInfo.totalSecoes;
+
+      // Se tem seções, renderiza um mini banner
+      if (totalSecoes > 0) {
+          const secCanvas = document.createElement('canvas');
+          secCanvas.width = largura; secCanvas.height = 24;
+          const sctx = secCanvas.getContext('2d');
+          sctx.fillStyle = '#e8f4fd'; sctx.fillRect(0, 0, largura, 24);
+          sctx.fillStyle = '#2c3e50'; sctx.font = 'bold 11px sans-serif'; sctx.textAlign = 'center';
+          sctx.fillText('Total de seções eleitorais: ' + totalSecoes, largura / 2, 16);
+          canvases.push({ titulo: '', img: secCanvas.toDataURL('image/png'), h: 24 });
+      }
+
+      // Cards resumo
+      const cardCanvas = document.createElement('canvas');
+      cardCanvas.width = largura; cardCanvas.height = 60;
+      const cctx = cardCanvas.getContext('2d');
+      cctx.fillStyle = '#f8f9fa'; cctx.fillRect(0, 0, largura, 60);
+      const obrig = (ag.obrigatoriedade || []).find(d => d.categoria === 'Obrigatório');
+      const facul = (ag.obrigatoriedade || []).find(d => d.categoria === 'Facultativo');
+      const masc = (ag.genero || []).find(d => d.categoria === 'MASCULINO');
+      const fem = (ag.genero || []).find(d => d.categoria === 'FEMININO');
+      const cw = largura / 4;
+      const cardData = [
+          { label: 'Obrigatório', valor: obrig ? obrig.total : 0, cor: '#27ae60' },
+          { label: 'Facultativo', valor: facul ? facul.total : 0, cor: '#e67e22' },
+          { label: 'Masculino', valor: masc ? masc.total : 0, cor: '#2980b9' },
+          { label: 'Feminino', valor: fem ? fem.total : 0, cor: '#e91e8b' }
+      ];
+      cardData.forEach(function(cd, i) {
+          cctx.fillStyle = cd.cor; cctx.fillRect(i * cw + 2, 0, cw - 4, 3);
+          cctx.fillStyle = '#2c3e50'; cctx.font = 'bold 14px sans-serif'; cctx.textAlign = 'center';
+          cctx.fillText(cd.valor.toLocaleString('pt-BR'), i * cw + cw / 2, 28);
+          cctx.fillStyle = '#7f8c8d'; cctx.font = '10px sans-serif';
+          cctx.fillText(cd.label, i * cw + cw / 2, 45);
+      });
+      canvases.push({ titulo: 'Resumo do Eleitorado', img: cardCanvas.toDataURL('image/png'), h: 60 });
+
+      // Escolaridade - barras horizontais
+      var escData = (ag.escolaridade || []).sort(function(a,b){ return b.total - a.total; });
+      if (escData.length > 0) {
+          var escH = 20 + escData.length * 22;
+          var escCanvas = document.createElement('canvas');
+          escCanvas.width = largura; escCanvas.height = escH;
+          var ectx = escCanvas.getContext('2d');
+          ectx.fillStyle = '#fff'; ectx.fillRect(0, 0, largura, escH);
+          var maxEsc = Math.max.apply(null, escData.map(function(d){ return d.total; }));
+          var barAreaStart = 200;
+          escData.forEach(function(d, i) {
+              var y = 5 + i * 22;
+              var barW = ((d.total / maxEsc) * (largura - barAreaStart - 60));
+              ectx.fillStyle = coresPizza[i % coresPizza.length];
+              ectx.fillRect(barAreaStart, y, barW, 16);
+              ectx.fillStyle = '#333'; ectx.font = '10px sans-serif'; ectx.textAlign = 'right';
+              ectx.fillText(d.categoria, barAreaStart - 5, y + 12);
+              ectx.textAlign = 'left';
+              ectx.fillText(d.total.toLocaleString('pt-BR'), barAreaStart + barW + 4, y + 12);
+          });
+          canvases.push({ titulo: 'Escolaridade', img: escCanvas.toDataURL('image/png'), h: escH });
+      }
+
+      // Estado Civil - barras horizontais
+      var ecData = (ag.estado_civil || []).sort(function(a,b){ return b.total - a.total; });
+      if (ecData.length > 0) {
+          var ecH = 20 + ecData.length * 22;
+          var ecCanvas = document.createElement('canvas');
+          ecCanvas.width = largura; ecCanvas.height = ecH;
+          var ecctx = ecCanvas.getContext('2d');
+          ecctx.fillStyle = '#fff'; ecctx.fillRect(0, 0, largura, ecH);
+          var maxEc = Math.max.apply(null, ecData.map(function(d){ return d.total; }));
+          ecData.forEach(function(d, i) {
+              var y = 5 + i * 22;
+              var barW = ((d.total / maxEc) * (largura - 220));
+              ecctx.fillStyle = ['#2ecc71','#e74c3c','#3498db','#f39c12','#9b59b6','#e67e22'][i % 6];
+              ecctx.fillRect(200, y, barW, 16);
+              ecctx.fillStyle = '#333'; ecctx.font = '10px sans-serif'; ecctx.textAlign = 'right';
+              ecctx.fillText(d.categoria, 195, y + 12);
+              ecctx.textAlign = 'left';
+              ecctx.fillText(d.total.toLocaleString('pt-BR'), 200 + barW + 4, y + 12);
+          });
+          canvases.push({ titulo: 'Estado Civil', img: ecCanvas.toDataURL('image/png'), h: ecH });
+      }
+
+      // Faixa Etária - barras verticais
+      var feData = (ag.faixa_etaria || []).sort(ordenarFaixaEtaria);
+      if (feData.length > 0) {
+          var feH = 160;
+          var feCanvas = document.createElement('canvas');
+          feCanvas.width = largura; feCanvas.height = feH;
+          var fctx = feCanvas.getContext('2d');
+          fctx.fillStyle = '#fff'; fctx.fillRect(0, 0, largura, feH);
+          var maxFe = Math.max.apply(null, feData.map(function(d){ return d.total; }));
+          var bw = Math.max(8, (largura - 40) / feData.length - 2);
+          var chartBottom = feH - 40;
+          feData.forEach(function(d, i) {
+              var x = 20 + i * (bw + 2);
+              var bh = (d.total / maxFe) * (chartBottom - 10);
+              var ratio = i / feData.length;
+              fctx.fillStyle = 'hsl(' + (200 + ratio * 160) + ', 60%, 55%)';
+              fctx.fillRect(x, chartBottom - bh, bw, bh);
+              fctx.save(); fctx.translate(x + bw / 2, chartBottom + 4); fctx.rotate(Math.PI / 4);
+              fctx.fillStyle = '#333'; fctx.font = '7px sans-serif'; fctx.textAlign = 'left';
+              fctx.fillText(d.categoria, 0, 0); fctx.restore();
+          });
+          canvases.push({ titulo: 'Faixa Etária', img: feCanvas.toDataURL('image/png'), h: feH });
+      }
+
+      return canvases;
+  }
+
+  function adicionarPerfilAoPDF(doc, perfilCanvases, margin, pageWidth, pageHeight, yPosInicial) {
+      var yPos = yPosInicial;
+      perfilCanvases.forEach(function(item) {
+          if (yPos + 20 > pageHeight - 20) { doc.addPage(); yPos = margin; }
+          doc.setTextColor(44, 62, 80); doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+          doc.text(item.titulo, margin, yPos); yPos += 4;
+          var imgW = pageWidth - 2 * margin;
+          var imgH = (item.h / 520) * imgW;
+          if (yPos + imgH > pageHeight - 20) { doc.addPage(); yPos = margin; }
+          doc.addImage(item.img, 'PNG', margin, yPos, imgW, imgH);
+          yPos += imgH + 6;
+      });
+      return yPos;
+  }
+
+  // ============================================
+  // EXPORTAR PERFIL DO ELEITORADO (PDF)
+  // ============================================
+  async function exportarPerfilEleitoradoPDF() {
+      const btn = document.getElementById('btn-exportar-perfil');
+      const statusEl = document.getElementById('dash-export-status');
+      btn.disabled = true;
+      statusEl.innerHTML = '⏳ Preparando exportação...';
+      statusEl.style.color = '#3498db';
+
+      try {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const margin = 15;
+          let yPos = margin;
+
+          // Determina o nível atual
+          const nivel = dashboardNivelAtual;
+          let titulo = '';
+          let dados = null;
+          let extraInfo = null;
+
+          if (nivel === 'estado') {
+              titulo = 'Estado do Rio Grande do Sul';
+              statusEl.innerHTML = '⏳ Carregando perfil estadual...';
+              dados = await consultarPerfilEleitorado('estado');
+          } else if (nivel === 'municipio') {
+              const selMun = document.getElementById('dash-select-municipio');
+              const mun = selMun.value;
+              if (!mun) { throw new Error('Selecione um município primeiro.'); }
+              titulo = 'Município: ' + mun;
+              statusEl.innerHTML = '⏳ Carregando perfil de ' + mun + '...';
+              dados = await consultarPerfilEleitorado('municipio', mun);
+          } else if (nivel === 'local') {
+              const selLocal = document.getElementById('dash-select-local');
+              const nmLocal = selLocal.value;
+              const selectedOpt = selLocal.options[selLocal.selectedIndex];
+              const nmMun = selectedOpt ? selectedOpt.dataset.municipio : '';
+              if (!nmLocal) { throw new Error('Selecione um local de votação primeiro.'); }
+              titulo = nmLocal + ' - ' + nmMun;
+              statusEl.innerHTML = '⏳ Carregando perfil do local...';
+              const valor = { nm_local_votacao: nmLocal, nm_municipio: nmMun };
+              dados = await consultarPerfilEleitorado('local', valor);
+              // Conta seções
+              let totalSecoesLocal = 0;
+              const secoesFromData = dados && dados.find(d => d.dimensao === 'total_secoes');
+              if (secoesFromData) totalSecoesLocal = Number(secoesFromData.total);
+              if (totalSecoesLocal > 0) extraInfo = { totalSecoes: totalSecoesLocal };
+          }
+
+          if (!dados || dados.length === 0) {
+              throw new Error('Nenhum dado de perfil encontrado para o nível selecionado.');
+          }
+
+          // Título principal
+          doc.setFillColor(41, 128, 185);
+          doc.rect(0, 0, pageWidth, 22, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Perfil do Eleitorado - ' + titulo, pageWidth / 2, 14, { align: 'center' });
+          yPos = 30;
+
+          doc.setTextColor(100, 100, 100);
+          doc.setFontSize(8);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Gerado em: ' + new Date().toLocaleString('pt-BR'), pageWidth - margin, yPos, { align: 'right' });
+          yPos += 8;
+
+          statusEl.innerHTML = '⏳ Gerando gráficos...';
+          const perfilCanvases = renderizarPerfilParaPDF(dados, 520, extraInfo);
+          yPos = adicionarPerfilAoPDF(doc, perfilCanvases, margin, pageWidth, pageHeight, yPos);
+
+          // Salva o PDF
+          const nomeArquivo = 'Perfil_Eleitorado_' + titulo.replace(/[^a-zA-Z0-9]/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+          doc.save(nomeArquivo);
+          statusEl.innerHTML = '✅ PDF exportado com sucesso!';
+          statusEl.style.color = '#27ae60';
+      } catch (err) {
+          console.error('Erro ao exportar perfil PDF:', err);
+          statusEl.innerHTML = '❌ Erro: ' + err.message;
+          statusEl.style.color = '#e74c3c';
+      } finally {
+          btn.disabled = false;
+      }
+  }
 </script>
        
     </body>
