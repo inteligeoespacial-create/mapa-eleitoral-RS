@@ -535,6 +535,31 @@ th { background-color: #f8f8f8; font-weight: bold; }
         <!-- Controle do Mapa de Calor -->
         <div id="heatmap-control" style="position:absolute; top: 120px; left: 10px; z-index: 1000; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 320px;">
             <label style="font-size: 12px; font-weight: bold; display: block; margin-bottom: 8px;">🔥 Mapa de Calor por Candidato</label>
+            
+            <!-- Filtros -->
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; color: #555;">Ano da Eleição:</label>
+                <select id="filtroAnoEleicao" style="padding: 6px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-bottom: 8px;">
+                    <option value="2022">2022</option>
+                </select>
+                
+                <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; color: #555;">Turno:</label>
+                <select id="filtroTurno" style="padding: 6px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-bottom: 8px;">
+                    <option value="">-- Todos --</option>
+                    <option value="1">1º Turno</option>
+                    <option value="2">2º Turno</option>
+                </select>
+                
+                <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; color: #555;">Cargo:</label>
+                <select id="filtroCargo" style="padding: 6px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-bottom: 8px;">
+                    <option value="">-- Todos --</option>
+                    <option value="DEPUTADO ESTADUAL">Deputado Estadual</option>
+                    <option value="DEPUTADO FEDERAL">Deputado Federal</option>
+                    <option value="GOVERNADOR">Governador</option>
+                    <option value="SENADOR">Senador</option>
+                </select>
+            </div>
+            
             <div style="position: relative;">
                 <input type="text" id="inputCandidatoCalor" placeholder="Digite o nome do candidato..." autocomplete="off" style="padding: 8px; width: 200px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;">
                 <div id="autocomplete-lista" style="position: absolute; top: 100%; left: 0; width: 200px; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ccc; border-top: none; border-radius: 0 0 4px 4px; display: none; z-index: 1001;"></div>
@@ -801,13 +826,163 @@ th { background-color: #f8f8f8; font-weight: bold; }
       }
   });
 
+  // ============================================
+  // LAYER DE PERCENTUAL POR REGIÃO (RGINT)
+  // ============================================
+  const sourceRegioes = new ol.source.Vector();
+  const layerRegioes = new ol.layer.Vector({
+      source: sourceRegioes,
+      visible: false,
+      zIndex: 2000, // Acima do heatmap
+      style: function(feature) {
+          const pct = feature.get('percentual');
+          const votos = feature.get('totalVotos');
+          return new ol.style.Style({
+              image: new ol.style.Circle({
+                  radius: 22,
+                  fill: new ol.style.Fill({ color: 'rgba(38, 166, 154, 0.85)' }),
+                  stroke: new ol.style.Stroke({ color: '#ffffff', width: 2.5 })
+              }),
+              text: new ol.style.Text({
+                  text: pct.toFixed(1).replace('.', ',') + '%',
+                  font: 'bold 11px Segoe UI, sans-serif',
+                  fill: new ol.style.Fill({ color: '#ffffff' }),
+                  textAlign: 'center',
+                  textBaseline: 'middle',
+                  offsetY: 0
+              })
+          });
+      }
+  });
+
   // Adiciona a camada ao mapa após ele estar pronto
   setTimeout(() => {
       if (typeof map !== 'undefined') {
           map.addLayer(layerHeatmap);
+          map.addLayer(layerRegioes);
           indexarLocais();
       }
   }, 1500);
+
+  // ============================================
+  // MAPEAMENTO MUNICÍPIO → REGIÃO INTERMEDIÁRIA
+  // ============================================
+  function getMunicipioRegiaoMap() {
+      const mapa = {};
+      const centroids = {};
+      const source = lyr_RS_Municipios_2023_3.getSource();
+      const features = source.getFeatures();
+      features.forEach(feat => {
+          const nmMun = (feat.get('NM_MUN') || '').toUpperCase();
+          const nmRgint = feat.get('NM_RGINT') || 'Sem Região';
+          if (nmMun) {
+              mapa[nmMun] = nmRgint;
+          }
+          // Acumula coordenadas para calcular centroid da região
+          if (!centroids[nmRgint]) {
+              centroids[nmRgint] = { coords: [], count: 0 };
+          }
+          try {
+              const extent = feat.getGeometry().getExtent();
+              const center = ol.extent.getCenter(extent);
+              centroids[nmRgint].coords.push(center);
+              centroids[nmRgint].count++;
+          } catch(e) {}
+      });
+      // Calcula centroid médio de cada região
+      const centroidsFinal = {};
+      Object.keys(centroids).forEach(regiao => {
+          const data = centroids[regiao];
+          if (data.coords.length > 0) {
+              const sumX = data.coords.reduce((s, c) => s + c[0], 0);
+              const sumY = data.coords.reduce((s, c) => s + c[1], 0);
+              centroidsFinal[regiao] = [sumX / data.coords.length, sumY / data.coords.length];
+          }
+      });
+      return { mapa, centroids: centroidsFinal };
+  }
+
+  // Calcula e exibe percentuais por região no mapa
+  function exibirPercentualRegioes(data, nomeCandidato) {
+      sourceRegioes.clear();
+      
+      const { mapa: munRegiaoMap, centroids } = getMunicipioRegiaoMap();
+      
+      // Agrupa votos do candidato por região
+      const votosPorRegiao = {};
+      let totalVotosCandidato = 0;
+      
+      data.forEach(item => {
+          const nmMun = (item.nm_municipio || '').toUpperCase();
+          const regiao = munRegiaoMap[nmMun] || 'Sem Região';
+          if (!votosPorRegiao[regiao]) {
+              votosPorRegiao[regiao] = 0;
+          }
+          votosPorRegiao[regiao] += item.qt_votos;
+          totalVotosCandidato += item.qt_votos;
+      });
+      
+      if (totalVotosCandidato === 0) return;
+      
+      // Cria features de círculos com percentual
+      const featuresRegioes = [];
+      Object.keys(votosPorRegiao).forEach(regiao => {
+          const centroid = centroids[regiao];
+          if (!centroid) return;
+          
+          const votosRegiao = votosPorRegiao[regiao];
+          const percentual = (votosRegiao / totalVotosCandidato) * 100;
+          
+          const feature = new ol.Feature({
+              geometry: new ol.geom.Point(centroid),
+              regiao: regiao,
+              totalVotos: votosRegiao,
+              percentual: percentual,
+              nomeCandidato: nomeCandidato
+          });
+          featuresRegioes.push(feature);
+      });
+      
+      sourceRegioes.addFeatures(featuresRegioes);
+      layerRegioes.setVisible(true);
+      
+      console.log(`Percentuais por região calculados: ${featuresRegioes.length} regiões`);
+  }
+
+  // Tooltip flutuante para os círculos de região
+  (function() {
+      const tooltipEl = document.createElement('div');
+      tooltipEl.id = 'regiao-tooltip';
+      tooltipEl.style.cssText = 'position:absolute;z-index:3000;background:rgba(0,0,0,0.8);color:#fff;padding:8px 12px;border-radius:6px;font-size:11px;font-family:Segoe UI,sans-serif;pointer-events:none;display:none;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+      document.body.appendChild(tooltipEl);
+
+      let tooltipReady = false;
+      function setupRegionTooltip() {
+          if (typeof map === 'undefined') { setTimeout(setupRegionTooltip, 1000); return; }
+          if (tooltipReady) return;
+          tooltipReady = true;
+
+          map.on('pointermove', function(evt) {
+              if (evt.dragging) { tooltipEl.style.display = 'none'; return; }
+              let found = false;
+              map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+                  if (layer === layerRegioes && !found) {
+                      found = true;
+                      const regiao = feature.get('regiao');
+                      const votos = feature.get('totalVotos');
+                      const pct = feature.get('percentual');
+                      const candidato = feature.get('nomeCandidato');
+                      tooltipEl.innerHTML = `<strong>${regiao}</strong><br>${votos.toLocaleString('pt-BR')} votos (${pct.toFixed(1).replace('.', ',')}%)<br><em>${candidato}</em>`;
+                      tooltipEl.style.display = 'block';
+                      tooltipEl.style.left = (evt.originalEvent.pageX + 15) + 'px';
+                      tooltipEl.style.top = (evt.originalEvent.pageY - 10) + 'px';
+                  }
+              }, { hitTolerance: 15 });
+              if (!found) tooltipEl.style.display = 'none';
+          });
+      }
+      setTimeout(setupRegionTooltip, 2000);
+  })();
 
   // Função principal para gerar o mapa de calor
   async function gerarMapaCalor(nomeCandidato) {
@@ -816,11 +991,22 @@ th { background-color: #f8f8f8; font-weight: bold; }
           return;
       }
 
+      // Obtém os valores dos filtros
+      const anoEleicao = document.getElementById('filtroAnoEleicao').value;
+      const turno = document.getElementById('filtroTurno').value;
+      const cargo = document.getElementById('filtroCargo').value;
+
+      // Define a tabela baseada no ano
+      const tabelaVotos = `votos_${anoEleicao}_processada`;
+
       const statusEl = document.getElementById('heatmap-status');
-      statusEl.innerText = `Buscando votos para: ${nomeCandidato}...`;
+      let statusMsg = `Buscando votos para: ${nomeCandidato}`;
+      if (turno) statusMsg += ` (Turno ${turno})`;
+      if (cargo) statusMsg += ` - ${cargo}`;
+      statusEl.innerText = statusMsg;
       statusEl.style.color = '#3498db';
 
-      console.log(`Gerando mapa de calor para: ${nomeCandidato}`);
+      console.log(`Gerando mapa de calor para: ${nomeCandidato}, Ano: ${anoEleicao}, Turno: ${turno || 'Todos'}, Cargo: ${cargo || 'Todos'}`);
 
       try {
           // Busca os votos por local no Supabase
@@ -834,11 +1020,27 @@ th { background-color: #f8f8f8; font-weight: bold; }
           let hasMore = true;
           
           while (hasMore) {
-              const { data, error } = await supabaseClient
+              // Inicia a query
+              let query = supabaseClient
                   .from('votos_por_local')
-                  .select('id_local, qt_votos, nm_local_votacao, nm_municipio')
-                  .eq('nm_votavel', nomeUpper)
-                  .range(offset, offset + pageSize - 1);
+                  .select('id_local, qt_votos, nm_local_votacao, nm_municipio, nr_turno, ds_cargo, ano_eleicao')
+                  .eq('nm_votavel', nomeUpper);
+
+              // Aplica filtros adicionais
+              if (anoEleicao) {
+                  query = query.eq('ano_eleicao', anoEleicao);
+              }
+              if (turno) {
+                  query = query.eq('nr_turno', turno);
+              }
+              if (cargo) {
+                  query = query.eq('ds_cargo', cargo);
+              }
+
+              // Aplica paginação
+              query = query.range(offset, offset + pageSize - 1);
+
+              const { data, error } = await query;
 
               if (error) {
                   console.error('Erro ao buscar votos:', error);
@@ -1005,6 +1207,13 @@ th { background-color: #f8f8f8; font-weight: bold; }
 
           // Popula a lista de locais de votação (ordenada por votos decrescente)
           popularListaLocais(data, nomeCandidato);
+
+          // Calcula e exibe percentuais por região intermediária
+          exibirPercentualRegioes(data, nomeCandidato);
+
+          // Atualiza info de total de votos válidos no status
+          statusHtml += `<br><span style="color:#26a69a; font-size:10px;">📊 Total votos válidos: ${totalVotosDB.toLocaleString('pt-BR')} | Regiões com %</span>`;
+          statusEl.innerHTML = statusHtml;
 
           // Opcional: Centralizar o mapa na extensão dos pontos
           if (featuresCalor.length > 0) {
@@ -1925,6 +2134,9 @@ th { background-color: #f8f8f8; font-weight: bold; }
   function limparMapaCalor() {
       sourceHeatmap.clear();
       layerHeatmap.setVisible(false);
+      // Limpa layer de percentuais por região
+      sourceRegioes.clear();
+      layerRegioes.setVisible(false);
       document.getElementById('inputCandidatoCalor').value = '';
       document.getElementById('heatmap-status').innerText = `${Object.keys(coordenadasLocais).length} locais de votação carregados`;
       document.getElementById('heatmap-status').style.color = '#666';
@@ -1981,12 +2193,31 @@ th { background-color: #f8f8f8; font-weight: bold; }
       listaEl.style.display = 'block';
 
       try {
+          // Obtém os valores dos filtros
+          const anoEleicao = document.getElementById('filtroAnoEleicao').value;
+          const turno = document.getElementById('filtroTurno').value;
+          const cargo = document.getElementById('filtroCargo').value;
+
           // Busca nomes distintos de candidatos - usa a view ou tabela com limite
-          const { data, error } = await supabaseClient
+          let query = supabaseClient
               .from('candidatos_distintos') // View: SELECT DISTINCT nm_votavel FROM votos_2022_processada ORDER BY nm_votavel
               .select('nm_votavel')
-              .ilike('nm_votavel', `%${termo}%`)
-              .limit(15);
+              .ilike('nm_votavel', `%${termo}%`);
+
+          // Aplica filtros se a view tiver essas colunas
+          if (anoEleicao) {
+              query = query.eq('ano_eleicao', anoEleicao);
+          }
+          if (turno) {
+              query = query.eq('nr_turno', turno);
+          }
+          if (cargo) {
+              query = query.eq('ds_cargo', cargo);
+          }
+
+          query = query.limit(15);
+
+          const { data, error } = await query;
 
           if (error) {
               console.error('Erro ao buscar candidatos:', error);
@@ -2089,9 +2320,17 @@ th { background-color: #f8f8f8; font-weight: bold; }
       
       console.log('Município selecionado:', nomeMun); // Debug
       
+      // Obtém os valores dos filtros
+      const anoEleicao = document.getElementById('filtroAnoEleicao').value;
+      const turno = document.getElementById('filtroTurno').value;
+      const cargo = document.getElementById('filtroCargo').value;
+      
       // 1. Abre a barra lateral e limpa a tabela e gráfico
       document.getElementById('sidebar-votos').style.display = 'block';
-      document.getElementById('label-municipio').innerText = e.text; // Mantém a grafia original do mapa no título
+      let labelMun = e.text; // Mantém a grafia original do mapa no título
+      if (turno) labelMun += ` - Turno ${turno}`;
+      if (cargo) labelMun += ` - ${cargo}`;
+      document.getElementById('label-municipio').innerText = labelMun;
       const tbody = document.getElementById('corpo-tabela');
       const graficoBarras = document.getElementById('grafico-barras');
       tbody.innerHTML = '<tr><td colspan="2">Buscando votos...</td></tr>';
@@ -2099,12 +2338,25 @@ th { background-color: #f8f8f8; font-weight: bold; }
 
       try {
           // 2. Consulta a VIEW que você acabou de criar no Supabase
-          const { data, error } = await supabaseClient
+          let query = supabaseClient
               .from('resumo_votos_municipio')
               .select('nm_votavel, total_votos')
-              .eq('nm_municipio', nomeMun)
-              .order('total_votos', { ascending: false })
-              .limit(50); // Limita a 50 candidatos para acelerar
+              .eq('nm_municipio', nomeMun);
+
+          // Aplica filtros se a view tiver essas colunas
+          if (anoEleicao) {
+              query = query.eq('ano_eleicao', anoEleicao);
+          }
+          if (turno) {
+              query = query.eq('nr_turno', turno);
+          }
+          if (cargo) {
+              query = query.eq('ds_cargo', cargo);
+          }
+
+          query = query.order('total_votos', { ascending: false }).limit(50); // Limita a 50 candidatos para acelerar
+
+          const { data, error } = await query;
 
           console.log('Resposta Supabase:', { data, error }); // Debug
 
