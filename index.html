@@ -539,8 +539,11 @@ th { background-color: #f8f8f8; font-weight: bold; }
             <!-- Filtros -->
             <div style="margin-bottom: 10px;">
                 <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; color: #555;">Ano da Eleição:</label>
-                <select id="filtroAnoEleicao" style="padding: 6px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-bottom: 8px;">
-                    <option value="2022">2022</option>
+                <select id="filtroAnoEleicao" style="padding: 6px; width: 100%; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; margin-bottom: 8px;" onchange="atualizarCargoPorAno()">
+                    <option value="2024">2024</option>
+                    <option value="2022" selected>2022</option>
+                    <option value="2020">2020</option>
+                    <option value="2018">2018</option>
                 </select>
                 
                 <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; color: #555;">Turno:</label>
@@ -558,6 +561,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
                     <option value="GOVERNADOR">Governador</option>
                     <option value="SENADOR">Senador</option>
                 </select>
+                <!-- Cargos atualizados dinamicamente por atualizarCargoPorAno() -->
             </div>
             
             <div style="position: relative;">
@@ -737,6 +741,71 @@ th { background-color: #f8f8f8; font-weight: bold; }
   const supabaseUrl = 'https://tkoddsmozspfolltmpyh.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRrb2Rkc21venNwZm9sbHRtcHloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3MzE5MjEsImV4cCI6MjA4MzMwNzkyMX0.Oe-3Dr5lMES0NfaFIURV-_PvKkeI3wlhkN4yJ_6bnh8';
   const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+  // ============================================
+  // MAPEAMENTO DE TABELAS/VIEWS POR ANO
+  // ============================================
+  // Cada ano de eleição possui suas próprias tabelas no Supabase:
+  //   votos_2018_processada, votos_2020_processada,
+  //   votos_2022_processada, votos_2024_processada
+  // As views derivadas seguem o padrão: votos_por_local_XXXX,
+  //   candidatos_distintos_XXXX, resumo_votos_municipio_XXXX
+
+  /**
+   * Retorna o nome da tabela/view do Supabase com base no ano selecionado.
+   * @param {'votos_por_local'|'candidatos_distintos'|'resumo_votos_municipio'|'processada'} tipo
+   * @param {string|number} ano - Ano da eleição (2018, 2020, 2022, 2024)
+   * @returns {string} Nome da tabela/view no Supabase
+   */
+  function getTabelaPorAno(tipo, ano) {
+      const tabelas = {
+          'processada': `votos_${ano}_processada`,
+          'votos_por_local': `votos_por_local_${ano}`,
+          'candidatos_distintos': `candidatos_distintos_${ano}`,
+          'resumo_votos_municipio': `resumo_votos_municipio_${ano}`
+      };
+      return tabelas[tipo] || tipo;
+  }
+
+  // Cargos disponíveis por tipo de eleição
+  const CARGOS_ESTADUAL_FEDERAL = [
+      { value: '', label: '-- Todos --' },
+      { value: 'DEPUTADO ESTADUAL', label: 'Deputado Estadual' },
+      { value: 'DEPUTADO FEDERAL', label: 'Deputado Federal' },
+      { value: 'GOVERNADOR', label: 'Governador' },
+      { value: 'SENADOR', label: 'Senador' },
+      { value: 'PRESIDENTE', label: 'Presidente' }
+  ];
+
+  const CARGOS_MUNICIPAL = [
+      { value: '', label: '-- Todos --' },
+      { value: 'PREFEITO', label: 'Prefeito' },
+      { value: 'VEREADOR', label: 'Vereador' }
+  ];
+
+  /**
+   * Atualiza as opções de Cargo com base no ano selecionado.
+   * Anos pares: 2018/2022 = eleições gerais, 2020/2024 = eleições municipais.
+   */
+  function atualizarCargoPorAno() {
+      const ano = document.getElementById('filtroAnoEleicao').value;
+      const selectCargo = document.getElementById('filtroCargo');
+      const anoNum = parseInt(ano);
+
+      // Eleições municipais: 2020, 2024; Eleições gerais: 2018, 2022
+      const cargos = (anoNum === 2020 || anoNum === 2024) ? CARGOS_MUNICIPAL : CARGOS_ESTADUAL_FEDERAL;
+
+      selectCargo.innerHTML = cargos.map(c =>
+          `<option value="${c.value}">${c.label}</option>`
+      ).join('');
+
+      // Limpa o campo de candidato ao trocar o ano
+      document.getElementById('inputCandidatoCalor').value = '';
+      document.getElementById('autocomplete-lista').style.display = 'none';
+  }
+
+  // Inicializa os cargos ao carregar a página
+  document.addEventListener('DOMContentLoaded', atualizarCargoPorAno);
 
   // ============================================
   // MAPA DE CALOR (HEATMAP) - CONFIGURAÇÃO
@@ -1011,8 +1080,8 @@ th { background-color: #f8f8f8; font-weight: bold; }
       const turno = document.getElementById('filtroTurno').value;
       const cargo = document.getElementById('filtroCargo').value;
 
-      // Define a tabela baseada no ano
-      const tabelaVotos = `votos_${anoEleicao}_processada`;
+      // Define as tabelas/views baseadas no ano selecionado
+      const tabelaVotosLocal = getTabelaPorAno('votos_por_local', anoEleicao);
 
       const statusEl = document.getElementById('heatmap-status');
       let statusMsg = `Buscando votos para: ${nomeCandidato}`;
@@ -1037,7 +1106,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
           while (hasMore) {
               // Inicia a query
               let query = supabaseClient
-                  .from('votos_por_local')
+                  .from(tabelaVotosLocal)
                   .select('id_local, qt_votos, nm_local_votacao, nm_municipio, nr_turno, ds_cargo, ano_eleicao')
                   .eq('nm_votavel', nomeUpper);
 
@@ -2220,8 +2289,9 @@ th { background-color: #f8f8f8; font-weight: bold; }
           const cargo = document.getElementById('filtroCargo').value;
 
           // Busca nomes distintos de candidatos - usa a view ou tabela com limite
+          const tabelaCandidatos = getTabelaPorAno('candidatos_distintos', anoEleicao);
           let query = supabaseClient
-              .from('candidatos_distintos') // View: SELECT DISTINCT nm_votavel FROM votos_2022_processada ORDER BY nm_votavel
+              .from(tabelaCandidatos) // View dinâmica por ano: candidatos_distintos_XXXX
               .select('nm_votavel')
               .ilike('nm_votavel', `%${termo}%`);
 
@@ -2358,9 +2428,10 @@ th { background-color: #f8f8f8; font-weight: bold; }
       graficoBarras.innerHTML = '<div style="padding: 20px; color: #666;">Carregando gráfico...</div>';
 
       try {
-          // 2. Consulta a VIEW que você acabou de criar no Supabase
+          // 2. Consulta a VIEW dinâmica por ano no Supabase
+          const tabelaResumo = getTabelaPorAno('resumo_votos_municipio', anoEleicao);
           let query = supabaseClient
-              .from('resumo_votos_municipio')
+              .from(tabelaResumo)
               .select('nm_votavel, total_votos')
               .eq('nm_municipio', nomeMun);
 
