@@ -829,6 +829,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
   // ============================================
   // LAYER DE PERCENTUAL POR REGIÃO (RGINT)
   // ============================================
+  var zoomInicialCalor = null; // Zoom no momento em que o mapa de calor é gerado
   const sourceRegioes = new ol.source.Vector();
   const layerRegioes = new ol.layer.Vector({
       source: sourceRegioes,
@@ -861,6 +862,20 @@ th { background-color: #f8f8f8; font-weight: bold; }
           map.addLayer(layerHeatmap);
           map.addLayer(layerRegioes);
           indexarLocais();
+
+          // Listener para esconder/mostrar os círculos de percentual conforme zoom
+          map.getView().on('change:resolution', function() {
+              if (zoomInicialCalor !== null && sourceRegioes.getFeatures().length > 0) {
+                  var zoomAtual = map.getView().getZoom();
+                  // Esconde se o zoom for maior que o inicial (usuário deu zoom in)
+                  if (zoomAtual > zoomInicialCalor + 0.5) {
+                      layerRegioes.setVisible(false);
+                  } else {
+                      // Mostra novamente se o usuário voltar ao zoom inicial
+                      layerRegioes.setVisible(true);
+                  }
+              }
+          });
       }
   }, 1500);
 
@@ -1221,6 +1236,11 @@ th { background-color: #f8f8f8; font-weight: bold; }
                   padding: [50, 50, 50, 400],
                   duration: 500
               });
+              // Captura o zoom inicial após a animação do fit terminar
+              setTimeout(function() {
+                  zoomInicialCalor = map.getView().getZoom();
+                  console.log('Zoom inicial do mapa de calor:', zoomInicialCalor);
+              }, 600);
           }
 
       } catch (err) {
@@ -2137,6 +2157,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
       // Limpa layer de percentuais por região
       sourceRegioes.clear();
       layerRegioes.setVisible(false);
+      zoomInicialCalor = null; // Reseta o zoom inicial
       document.getElementById('inputCandidatoCalor').value = '';
       document.getElementById('heatmap-status').innerText = `${Object.keys(coordenadasLocais).length} locais de votação carregados`;
       document.getElementById('heatmap-status').style.color = '#666';
