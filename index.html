@@ -512,6 +512,190 @@ th { background-color: #f8f8f8; font-weight: bold; }
 #dash-export-status {
     font-size: 10px; color: #666; margin-top: 4px; text-align: center;
 }
+
+/* ============================================ */
+/* PAINEL DE COMPARAÇÃO DE CANDIDATOS          */
+/* ============================================ */
+#painel-comparacao {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4000;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 860px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: none;
+}
+#painel-comparacao.visible { display: block; }
+#painel-comparacao-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.4); z-index: 3999; display: none;
+}
+#painel-comparacao-overlay.visible { display: block; }
+#painel-comparacao h2 {
+    margin: 0 0 12px 0; font-size: 16px; color: #2c3e50;
+    border-bottom: 2px solid #8e44ad; padding-bottom: 8px;
+}
+.comp-cargo-row {
+    display: flex; gap: 10px; align-items: center; margin-bottom: 12px;
+    padding: 8px 12px; background: #f0f0f0; border-radius: 6px;
+}
+.comp-cargo-row label { font-size: 11px; font-weight: 600; color: #555; white-space: nowrap; }
+.comp-cargo-row select { padding: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 11px; }
+.comp-candidatos-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px;
+}
+.comp-candidato-box {
+    border: 2px solid #ddd; border-radius: 8px; padding: 10px;
+    position: relative; background: #fafafa;
+}
+.comp-candidato-box .comp-color-indicator {
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    border-radius: 6px 6px 0 0;
+}
+.comp-candidato-box label {
+    font-size: 10px; font-weight: 600; color: #555;
+    display: block; margin-bottom: 3px;
+}
+.comp-candidato-box select, .comp-candidato-box input {
+    width: 100%; padding: 5px; border: 1px solid #ccc;
+    border-radius: 4px; font-size: 11px; box-sizing: border-box; margin-bottom: 4px;
+}
+.comp-candidato-box .comp-autocomplete {
+    position: absolute; left: 10px; right: 10px;
+    max-height: 150px; overflow-y: auto; background: white;
+    border: 1px solid #ccc; border-top: none; border-radius: 0 0 4px 4px;
+    z-index: 4010; display: none;
+}
+.comp-autocomplete .autocomplete-item {
+    padding: 6px 8px; cursor: pointer; font-size: 11px;
+    border-bottom: 1px solid #eee;
+}
+.comp-autocomplete .autocomplete-item:hover {
+    background-color: #8e44ad; color: white;
+}
+.comp-buttons {
+    display: flex; gap: 8px; margin-bottom: 10px;
+}
+.comp-buttons button {
+    padding: 8px 16px; border: none; border-radius: 4px;
+    cursor: pointer; font-size: 12px; font-weight: bold;
+}
+#btn-gerar-comparacao {
+    background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%); color: white;
+}
+#btn-gerar-comparacao:hover { background: linear-gradient(135deg, #7d3c98 0%, #8e44ad 100%); }
+#btn-gerar-comparacao:disabled { background: #bdc3c7; cursor: not-allowed; }
+#btn-limpar-comparacao {
+    background: #95a5a6; color: white;
+}
+#btn-limpar-comparacao:hover { background: #7f8c8d; }
+#btn-fechar-comparacao {
+    background: #e74c3c; color: white;
+}
+#btn-fechar-comparacao:hover { background: #c0392b; }
+#btn-exportar-comparacao-pdf {
+    background: linear-gradient(135deg, #2980b9 0%, #3498db 100%); color: white;
+    display: none;
+}
+#btn-exportar-comparacao-pdf:hover { background: linear-gradient(135deg, #2471a3 0%, #2e86c1 100%); }
+#comparacao-status {
+    font-size: 11px; color: #666; margin-bottom: 8px;
+}
+
+/* Tabela de comparação estadual */
+#tabela-comparacao-estado {
+    display: none; max-height: 400px; overflow-y: auto;
+    border: 1px solid #ddd; border-radius: 6px; margin-top: 10px;
+}
+#tabela-comparacao-estado.visible { display: block; }
+#tabela-comparacao-estado table {
+    width: 100%; border-collapse: collapse; font-size: 11px;
+}
+#tabela-comparacao-estado th {
+    background: #8e44ad; color: white; padding: 6px 8px;
+    text-align: left; position: sticky; top: 0; cursor: pointer;
+    font-size: 10px;
+}
+#tabela-comparacao-estado th:hover { background: #7d3c98; }
+#tabela-comparacao-estado td {
+    padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 10px;
+}
+#tabela-comparacao-estado tr:hover { background: #f5f0ff; }
+#tabela-comparacao-estado .vencedor-cell {
+    font-weight: bold; border-radius: 3px; padding: 2px 6px;
+}
+.comp-summary-row {
+    background: #f0e6f6 !important; font-weight: bold;
+}
+
+/* Sidebar de comparação por cidade */
+#sidebar-comparacao-cidade {
+    position: fixed; top: 0; right: 0; width: 420px; height: 100%;
+    background-color: white; z-index: 4500;
+    box-shadow: -3px 0 10px rgba(0,0,0,0.3);
+    overflow-y: auto; padding: 20px;
+    display: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+#sidebar-comparacao-cidade .btn-fechar {
+    padding: 5px 10px; cursor: pointer; float: right;
+    background: #8e44ad; color: white; border: none; border-radius: 4px;
+}
+#sidebar-comparacao-cidade h2 { font-size: 16px; color: #2c3e50; margin-bottom: 10px; }
+#comp-cidade-barras {
+    display: flex; align-items: flex-end; height: 180px;
+    padding: 10px 15px 40px 15px; gap: 12px;
+    background: #fafafa; border-radius: 5px; margin-bottom: 10px;
+    justify-content: center;
+}
+#comp-cidade-barras .barra-item { min-width: 80px; max-width: 120px; }
+#comp-cidade-barras .barra { border-radius: 3px 3px 0 0; width: 60px; }
+#comp-cidade-tabela {
+    max-height: 350px; overflow-y: auto;
+}
+#comp-cidade-tabela table {
+    width: 100%; border-collapse: collapse; font-size: 11px;
+}
+#comp-cidade-tabela th {
+    background: #8e44ad; color: white; padding: 6px 8px;
+    text-align: left; position: sticky; top: 0; font-size: 10px;
+}
+#comp-cidade-tabela td {
+    padding: 5px 8px; border-bottom: 1px solid #eee; font-size: 10px;
+}
+
+/* Legenda da comparação no mapa */
+#legenda-comparacao {
+    position: absolute; bottom: 30px; right: 10px; z-index: 1000;
+    background: white; padding: 10px 14px; border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 11px; display: none;
+}
+#legenda-comparacao.visible { display: block; }
+#legenda-comparacao h4 { margin: 0 0 6px 0; font-size: 12px; color: #333; }
+.legenda-comp-item {
+    display: flex; align-items: center; margin: 3px 0;
+}
+.legenda-comp-cor {
+    width: 16px; height: 12px; margin-right: 8px;
+    border: 1px solid #999; border-radius: 2px;
+}
+.legenda-comp-nome { color: #555; font-size: 10px; }
+
+@media (max-width: 900px) {
+    .comp-candidatos-grid { grid-template-columns: 1fr; }
+    #painel-comparacao { width: 95vw; }
+    #sidebar-comparacao-cidade { width: 100%; }
+}
         </style>
 
         <style>
@@ -571,6 +755,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
             <div style="margin-top: 8px;">
                 <button onclick="gerarMapaCalor(document.getElementById('inputCandidatoCalor').value)" style="padding: 8px 12px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Gerar</button>
                 <button onclick="limparMapaCalor()" style="padding: 8px 12px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; margin-left: 3px;" title="Limpar mapa de calor">✕ Limpar</button>
+                <button onclick="abrirPainelComparacao()" style="padding: 8px 12px; background: linear-gradient(135deg, #8e44ad 0%, #9b59b6 100%); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 3px;" title="Comparar candidatos">🔀 Comparar</button>
             </div>
             <div id="heatmap-status" style="font-size: 11px; color: #666; margin-top: 6px;"></div>
             
@@ -672,6 +857,121 @@ th { background-color: #f8f8f8; font-weight: bold; }
             <div id="setor-censo-extra">
                 <div id="setor-censo-conteudo">Clique em um setor para carregar dados...</div>
             </div>
+        </div>
+
+        <!-- Overlay + Painel de Comparação de Candidatos -->
+        <div id="painel-comparacao-overlay" onclick="fecharPainelComparacao()"></div>
+        <div id="painel-comparacao">
+            <h2>🔀 Comparação de Candidatos</h2>
+            <div class="comp-cargo-row">
+                <label>Cargo (mesmo para todos):</label>
+                <select id="comp-cargo" onchange="onCompCargoChange()">
+                    <option value="">-- Selecione --</option>
+                </select>
+            </div>
+            <div class="comp-candidatos-grid">
+                <!-- Candidato A -->
+                <div class="comp-candidato-box" id="comp-box-0">
+                    <div class="comp-color-indicator" style="background: #e74c3c;"></div>
+                    <label>🔴 Candidato A</label>
+                    <label>Ano:</label>
+                    <select id="comp-ano-0" onchange="onCompAnoChange(0)">
+                        <option value="2024">2024</option>
+                        <option value="2022" selected>2022</option>
+                        <option value="2020">2020</option>
+                        <option value="2018">2018</option>
+                    </select>
+                    <label>Turno:</label>
+                    <select id="comp-turno-0">
+                        <option value="">Todos</option>
+                        <option value="1">1º Turno</option>
+                        <option value="2">2º Turno</option>
+                    </select>
+                    <label>Candidato:</label>
+                    <div style="position:relative;">
+                        <input type="text" id="comp-input-0" placeholder="Nome do candidato..." autocomplete="off" oninput="buscarCandidatosComp(0)">
+                        <div class="comp-autocomplete" id="comp-lista-0"></div>
+                    </div>
+                </div>
+                <!-- Candidato B -->
+                <div class="comp-candidato-box" id="comp-box-1">
+                    <div class="comp-color-indicator" style="background: #3498db;"></div>
+                    <label>🔵 Candidato B</label>
+                    <label>Ano:</label>
+                    <select id="comp-ano-1" onchange="onCompAnoChange(1)">
+                        <option value="2024">2024</option>
+                        <option value="2022" selected>2022</option>
+                        <option value="2020">2020</option>
+                        <option value="2018">2018</option>
+                    </select>
+                    <label>Turno:</label>
+                    <select id="comp-turno-1">
+                        <option value="">Todos</option>
+                        <option value="1">1º Turno</option>
+                        <option value="2">2º Turno</option>
+                    </select>
+                    <label>Candidato:</label>
+                    <div style="position:relative;">
+                        <input type="text" id="comp-input-1" placeholder="Nome do candidato..." autocomplete="off" oninput="buscarCandidatosComp(1)">
+                        <div class="comp-autocomplete" id="comp-lista-1"></div>
+                    </div>
+                </div>
+                <!-- Candidato C -->
+                <div class="comp-candidato-box" id="comp-box-2">
+                    <div class="comp-color-indicator" style="background: #27ae60;"></div>
+                    <label>🟢 Candidato C (opcional)</label>
+                    <label>Ano:</label>
+                    <select id="comp-ano-2" onchange="onCompAnoChange(2)">
+                        <option value="2024">2024</option>
+                        <option value="2022" selected>2022</option>
+                        <option value="2020">2020</option>
+                        <option value="2018">2018</option>
+                    </select>
+                    <label>Turno:</label>
+                    <select id="comp-turno-2">
+                        <option value="">Todos</option>
+                        <option value="1">1º Turno</option>
+                        <option value="2">2º Turno</option>
+                    </select>
+                    <label>Candidato:</label>
+                    <div style="position:relative;">
+                        <input type="text" id="comp-input-2" placeholder="Nome do candidato..." autocomplete="off" oninput="buscarCandidatosComp(2)">
+                        <div class="comp-autocomplete" id="comp-lista-2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="comp-buttons">
+                <button id="btn-gerar-comparacao" onclick="gerarComparacao()">📊 Gerar Comparação</button>
+                <button id="btn-limpar-comparacao" onclick="limparComparacao()">✕ Limpar</button>
+                <button id="btn-exportar-comparacao-pdf" onclick="exportarComparacaoPDF()">📄 Exportar PDF</button>
+                <button id="btn-fechar-comparacao" onclick="fecharPainelComparacao()">Fechar</button>
+            </div>
+            <div id="comparacao-status"></div>
+            <div id="tabela-comparacao-estado">
+                <table>
+                    <thead id="comp-thead"></thead>
+                    <tbody id="comp-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sidebar de Comparação por Cidade -->
+        <div id="sidebar-comparacao-cidade">
+            <button class="btn-fechar" onclick="fecharSidebarCompCidade()">✕ Fechar</button>
+            <h2>📊 Comparação em: <span id="comp-cidade-label"></span></h2>
+            <div id="comp-cidade-barras"></div>
+            <div id="comp-cidade-tabela">
+                <table>
+                    <thead id="comp-cidade-thead"></thead>
+                    <tbody id="comp-cidade-tbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Legenda de Comparação no Mapa -->
+        <div id="legenda-comparacao">
+            <h4>🔀 Candidatos</h4>
+            <div id="legenda-comp-items"></div>
         </div>
 
         <!-- Legenda de Renda dos Setores Censitários -->
@@ -3502,6 +3802,857 @@ th { background-color: #f8f8f8; font-weight: bold; }
           statusEl.style.color = '#e74c3c';
       } finally {
           btn.disabled = false;
+      }
+  }
+</script>
+
+<script>
+  // ============================================
+  // COMPARAÇÃO DE CANDIDATOS
+  // ============================================
+
+  const COMP_CORES = ['#e74c3c', '#3498db', '#27ae60'];
+  const COMP_CORES_RGBA = [
+      [231, 76, 60],
+      [52, 152, 219],
+      [39, 174, 96]
+  ];
+  let compModoAtivo = false;
+  let dadosComparacao = []; // [{candidato, ano, turno, cor, municipios: {NM_MUN: total_votos}}, ...]
+  let dadosCompLocais = []; // [{candidato, ano, turno, cor, dados: [rows from votos_por_local]}, ...]
+  let compMunicipiosMerge = {}; // {NM_MUN: [{candidato, votos, pct}, ...], vencedor, corVencedor}
+  let compSortCol = 0;
+  let compSortAsc = true;
+  let compAutoTimeouts = [null, null, null];
+
+  // Abre o painel de comparação
+  function abrirPainelComparacao() {
+      document.getElementById('painel-comparacao').classList.add('visible');
+      document.getElementById('painel-comparacao-overlay').classList.add('visible');
+      atualizarCargoComparacao();
+  }
+
+  // Fecha o painel de comparação
+  function fecharPainelComparacao() {
+      document.getElementById('painel-comparacao').classList.remove('visible');
+      document.getElementById('painel-comparacao-overlay').classList.remove('visible');
+  }
+
+  // Fecha sidebar de comparação de cidade
+  function fecharSidebarCompCidade() {
+      document.getElementById('sidebar-comparacao-cidade').style.display = 'none';
+  }
+
+  // Atualiza as opções de cargo baseado na interseção dos anos selecionados
+  function atualizarCargoComparacao() {
+      const anos = [];
+      for (let i = 0; i < 3; i++) {
+          const el = document.getElementById('comp-ano-' + i);
+          if (el) anos.push(parseInt(el.value));
+      }
+      // Determina cargos disponíveis para cada ano
+      const cargoSets = anos.map(ano => {
+          if (ano === 2020 || ano === 2024) return CARGOS_MUNICIPAL.filter(c => c.value);
+          return CARGOS_ESTADUAL_FEDERAL.filter(c => c.value);
+      });
+      // Interseção dos cargos
+      const allValues = cargoSets.map(set => new Set(set.map(c => c.value)));
+      const intersection = CARGOS_ESTADUAL_FEDERAL.concat(CARGOS_MUNICIPAL)
+          .filter(c => c.value)
+          .filter(c => {
+              // Cargo must exist in at least the filled candidates' years
+              const filledIndices = [0, 1, 2].filter(i => {
+                  const input = document.getElementById('comp-input-' + i);
+                  return input && input.value.trim();
+              });
+              if (filledIndices.length === 0) {
+                  // No candidates filled yet, show intersection of all 3
+                  return allValues.every(s => s.has(c.value));
+              }
+              return filledIndices.every(i => allValues[i].has(c.value));
+          });
+      // Deduplicate
+      const seen = new Set();
+      const unique = intersection.filter(c => { if (seen.has(c.value)) return false; seen.add(c.value); return true; });
+
+      const select = document.getElementById('comp-cargo');
+      const prevVal = select.value;
+      select.innerHTML = '<option value="">-- Selecione --</option>' +
+          unique.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
+      if (unique.find(c => c.value === prevVal)) select.value = prevVal;
+  }
+
+  function onCompAnoChange(idx) {
+      atualizarCargoComparacao();
+      document.getElementById('comp-input-' + idx).value = '';
+  }
+
+  function onCompCargoChange() {
+      // Clear candidate inputs when cargo changes
+      for (let i = 0; i < 3; i++) {
+          document.getElementById('comp-input-' + i).value = '';
+      }
+  }
+
+  // Autocomplete for comparison candidate inputs
+  async function buscarCandidatosComp(idx) {
+      const input = document.getElementById('comp-input-' + idx);
+      const lista = document.getElementById('comp-lista-' + idx);
+      const termo = input.value.trim();
+
+      if (compAutoTimeouts[idx]) clearTimeout(compAutoTimeouts[idx]);
+
+      if (!termo || termo.length < 2) {
+          lista.style.display = 'none';
+          return;
+      }
+
+      compAutoTimeouts[idx] = setTimeout(async () => {
+          const ano = document.getElementById('comp-ano-' + idx).value;
+          const cargo = document.getElementById('comp-cargo').value;
+          lista.innerHTML = '<div class="autocomplete-loading">Buscando...</div>';
+          lista.style.display = 'block';
+
+          try {
+              const tabela = getTabelaPorAno('candidatos_distintos', ano);
+              const { data, error } = await supabaseClient
+                  .from(tabela)
+                  .select('nm_votavel')
+                  .ilike('nm_votavel', `%${termo}%`)
+                  .limit(15);
+
+              if (error || !data || data.length === 0) {
+                  lista.innerHTML = '<div class="autocomplete-loading">Nenhum encontrado</div>';
+                  return;
+              }
+              lista.innerHTML = data.map(c =>
+                  `<div class="autocomplete-item" onclick="selecionarCandidatoComp(${idx}, '${c.nm_votavel.replace(/'/g, "\\'")}')">${c.nm_votavel}</div>`
+              ).join('');
+          } catch (err) {
+              lista.innerHTML = '<div class="autocomplete-loading">Erro</div>';
+          }
+      }, 300);
+  }
+
+  function selecionarCandidatoComp(idx, nome) {
+      document.getElementById('comp-input-' + idx).value = nome;
+      document.getElementById('comp-lista-' + idx).style.display = 'none';
+  }
+
+  // Close comp autocomplete when clicking outside
+  document.addEventListener('click', function(e) {
+      for (let i = 0; i < 3; i++) {
+          if (!e.target.closest('#comp-box-' + i)) {
+              const lista = document.getElementById('comp-lista-' + i);
+              if (lista) lista.style.display = 'none';
+          }
+      }
+  });
+
+  // ============================================
+  // GERAR COMPARAÇÃO PRINCIPAL
+  // ============================================
+  async function gerarComparacao() {
+      const cargo = document.getElementById('comp-cargo').value;
+      if (!cargo) {
+          alert('Selecione um cargo para comparar.');
+          return;
+      }
+
+      // Collect candidates
+      const candidatos = [];
+      for (let i = 0; i < 3; i++) {
+          const nome = document.getElementById('comp-input-' + i).value.trim().toUpperCase();
+          if (!nome) continue;
+          const ano = document.getElementById('comp-ano-' + i).value;
+          const turno = document.getElementById('comp-turno-' + i).value;
+          candidatos.push({ idx: i, nome, ano, turno, cor: COMP_CORES[i], corRgba: COMP_CORES_RGBA[i] });
+      }
+
+      if (candidatos.length < 2) {
+          alert('Preencha pelo menos 2 candidatos para comparar.');
+          return;
+      }
+
+      const statusEl = document.getElementById('comparacao-status');
+      const btnGerar = document.getElementById('btn-gerar-comparacao');
+      btnGerar.disabled = true;
+      statusEl.innerHTML = '⏳ Carregando dados dos candidatos...';
+      statusEl.style.color = '#3498db';
+
+      try {
+          dadosComparacao = [];
+          dadosCompLocais = [];
+
+          // For each candidate, query resumo_votos_municipio and votos_por_local
+          for (const cand of candidatos) {
+              statusEl.innerHTML = `⏳ Carregando ${cand.nome}...`;
+
+              const tabelaResumo = getTabelaPorAno('resumo_votos_municipio', cand.ano);
+              const tabelaLocal = getTabelaPorAno('votos_por_local', cand.ano);
+              const cargoNorm = normalizarCargo(cargo, cand.ano);
+
+              // 1. Municipality-level summary
+              let queryR = supabaseClient
+                  .from(tabelaResumo)
+                  .select('nm_municipio, total_votos')
+                  .eq('nm_votavel', cand.nome);
+              if (cand.turno) queryR = queryR.eq('nr_turno', cand.turno);
+              queryR = queryR.eq('ds_cargo', cargoNorm);
+
+              const { data: dataResumo, error: errR } = await queryR;
+              if (errR) {
+                  statusEl.innerHTML = `❌ Erro ao buscar ${cand.nome}: ${errR.message}`;
+                  statusEl.style.color = '#e74c3c';
+                  btnGerar.disabled = false;
+                  return;
+              }
+
+              const municipios = {};
+              let totalVotos = 0;
+              (dataResumo || []).forEach(r => {
+                  const mun = (r.nm_municipio || '').toUpperCase().trim();
+                  municipios[mun] = (municipios[mun] || 0) + Number(r.total_votos);
+                  totalVotos += Number(r.total_votos);
+              });
+
+              dadosComparacao.push({
+                  candidato: cand.nome,
+                  ano: cand.ano,
+                  turno: cand.turno,
+                  cor: cand.cor,
+                  corRgba: cand.corRgba,
+                  municipios,
+                  totalVotos
+              });
+
+              // 2. Voting location details (paginated)
+              let allLocal = [];
+              let offset = 0;
+              const pageSize = 1000;
+              let hasMore = true;
+              while (hasMore) {
+                  let queryL = supabaseClient
+                      .from(tabelaLocal)
+                      .select('id_local, qt_votos, nm_local_votacao, nm_municipio')
+                      .eq('nm_votavel', cand.nome);
+                  if (cand.turno) queryL = queryL.eq('nr_turno', cand.turno);
+                  queryL = queryL.eq('ds_cargo', cargoNorm).range(offset, offset + pageSize - 1);
+
+                  const { data: dataL, error: errL } = await queryL;
+                  if (errL) { console.warn('Erro local:', errL); break; }
+                  if (dataL && dataL.length > 0) {
+                      allLocal = allLocal.concat(dataL);
+                      offset += pageSize;
+                      hasMore = dataL.length === pageSize;
+                  } else {
+                      hasMore = false;
+                  }
+              }
+
+              dadosCompLocais.push({
+                  candidato: cand.nome,
+                  ano: cand.ano,
+                  turno: cand.turno,
+                  cor: cand.cor,
+                  corRgba: cand.corRgba,
+                  dados: allLocal
+              });
+          }
+
+          statusEl.innerHTML = '⏳ Processando dados...';
+
+          // Build merged municipality data
+          construirDadosMerge();
+
+          // Render choropleth on map
+          renderizarCoropleth();
+
+          // Render state-level table
+          renderizarTabelaComparacao();
+
+          // Show comparison legend on map
+          mostrarLegendaComparacao();
+
+          // Setup click handler for municipalities
+          compModoAtivo = true;
+
+          // Show PDF button
+          document.getElementById('btn-exportar-comparacao-pdf').style.display = 'inline-block';
+
+          const totalInfo = dadosComparacao.map(d => `${d.candidato}: ${d.totalVotos.toLocaleString('pt-BR')}`).join(' | ');
+          statusEl.innerHTML = `✅ Comparação gerada! ${totalInfo}`;
+          statusEl.style.color = '#27ae60';
+
+      } catch (err) {
+          console.error('Erro na comparação:', err);
+          statusEl.innerHTML = `❌ Erro: ${err.message}`;
+          statusEl.style.color = '#e74c3c';
+      } finally {
+          btnGerar.disabled = false;
+      }
+  }
+
+  // Build merged data: for each municipality, which candidate won
+  function construirDadosMerge() {
+      compMunicipiosMerge = {};
+      // Get all municipalities from the map layer
+      const features = lyr_RS_Municipios_2023_3.getSource().getFeatures();
+      features.forEach(feat => {
+          const nmMun = (feat.get('NM_MUN') || '').toUpperCase().trim();
+          if (!nmMun) return;
+          const entries = [];
+          let totalMun = 0;
+          dadosComparacao.forEach(cand => {
+              const votos = cand.municipios[nmMun] || 0;
+              totalMun += votos;
+              entries.push({ candidato: cand.candidato, votos, cor: cand.cor, corRgba: cand.corRgba });
+          });
+          // Compute percentage
+          entries.forEach(e => { e.pct = totalMun > 0 ? (e.votos / totalMun * 100) : 0; });
+          // Determine winner
+          const sorted = [...entries].sort((a, b) => b.votos - a.votos);
+          const vencedor = sorted[0] && sorted[0].votos > 0 ? sorted[0] : null;
+          const margin = vencedor && sorted.length > 1 ? (vencedor.votos - sorted[1].votos) / totalMun : 1;
+          compMunicipiosMerge[nmMun] = {
+              entries,
+              totalMun,
+              vencedor: vencedor ? vencedor.candidato : null,
+              corVencedor: vencedor ? vencedor.cor : null,
+              corVencedorRgba: vencedor ? vencedor.corRgba : null,
+              margin: Math.min(margin, 1)
+          };
+      });
+  }
+
+  // ============================================
+  // CHOROPLETH RENDERING
+  // ============================================
+  let styleComparacaoOriginal = null;
+
+  function renderizarCoropleth() {
+      if (!styleComparacaoOriginal) {
+          styleComparacaoOriginal = lyr_RS_Municipios_2023_3.getStyle();
+      }
+
+      lyr_RS_Municipios_2023_3.setStyle(function(feature, resolution) {
+          const nmMun = (feature.get('NM_MUN') || '').toUpperCase().trim();
+          const data = compMunicipiosMerge[nmMun];
+
+          let fillColor = 'rgba(220, 220, 220, 0.3)';
+          if (data && data.corVencedorRgba && data.totalMun > 0) {
+              const opacity = 0.25 + data.margin * 0.55; // 0.25 to 0.8
+              const rgb = data.corVencedorRgba;
+              fillColor = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${opacity.toFixed(2)})`;
+          }
+
+          // Label at appropriate resolution
+          let labelText = '';
+          if (feature.get('NM_MUN') !== null && resolution > 0 && resolution < 28) {
+              labelText = String(feature.get('NM_MUN'));
+          }
+
+          return [new ol.style.Style({
+              fill: new ol.style.Fill({ color: fillColor }),
+              stroke: new ol.style.Stroke({
+                  color: data && data.corVencedor ? data.corVencedor : 'rgba(0, 200, 220, 0.6)',
+                  width: 1.5
+              }),
+              text: createTextStyle(feature, resolution, labelText,
+                  "13px 'Open Sans', sans-serif",
+                  '#222', 'point', '#fafafa', 3)
+          })];
+      });
+
+      lyr_RS_Municipios_2023_3.changed();
+  }
+
+  // ============================================
+  // STATE-LEVEL COMPARISON TABLE
+  // ============================================
+  function renderizarTabelaComparacao() {
+      const container = document.getElementById('tabela-comparacao-estado');
+      const thead = document.getElementById('comp-thead');
+      const tbody = document.getElementById('comp-tbody');
+
+      // Build header
+      let headerHtml = '<tr><th onclick="compSortTable(0)">#</th><th onclick="compSortTable(1)">Município</th>';
+      dadosComparacao.forEach((cand, i) => {
+          const label = cand.candidato.length > 15 ? cand.candidato.substring(0, 12) + '...' : cand.candidato;
+          headerHtml += `<th onclick="compSortTable(${i + 2})" style="color: ${cand.cor}; cursor:pointer;" title="${cand.candidato} (${cand.ano})">${label}<br><span style="font-size:8px;font-weight:normal;">${cand.ano} T${cand.turno || '*'}</span></th>`;
+      });
+      headerHtml += '<th onclick="compSortTable(' + (dadosComparacao.length + 2) + ')">Vencedor</th></tr>';
+      thead.innerHTML = headerHtml;
+
+      // Build rows
+      const rows = [];
+      // Summary row
+      const summaryEntries = dadosComparacao.map(c => c.totalVotos);
+      const summaryTotal = summaryEntries.reduce((s, v) => s + v, 0);
+      const summaryWinner = dadosComparacao.reduce((best, c) => c.totalVotos > best.totalVotos ? c : best, dadosComparacao[0]);
+
+      Object.entries(compMunicipiosMerge).forEach(([nmMun, data]) => {
+          if (data.totalMun === 0) return; // Skip municipalities with no data
+          rows.push({ nmMun, ...data });
+      });
+
+      // Sort
+      compSortRows(rows);
+
+      // Summary row first
+      let bodyHtml = `<tr class="comp-summary-row"><td></td><td><strong>TOTAL ESTADO</strong></td>`;
+      dadosComparacao.forEach(c => {
+          const pct = summaryTotal > 0 ? (c.totalVotos / summaryTotal * 100).toFixed(1) : '0.0';
+          bodyHtml += `<td style="text-align:right;"><strong>${c.totalVotos.toLocaleString('pt-BR')}</strong><br><span style="font-size:9px;color:${c.cor};">${pct}%</span></td>`;
+      });
+      bodyHtml += `<td class="vencedor-cell" style="color:${summaryWinner.cor};">${summaryWinner.candidato.substring(0, 15)}</td></tr>`;
+
+      // Data rows
+      rows.forEach((row, idx) => {
+          bodyHtml += `<tr style="cursor:pointer;" onclick="abrirCompCidade('${row.nmMun.replace(/'/g, "\\'")}')" title="Clique para ver detalhes">`;
+          bodyHtml += `<td>${idx + 1}</td><td>${row.nmMun}</td>`;
+          row.entries.forEach(e => {
+              const pctStr = e.pct > 0 ? e.pct.toFixed(1) + '%' : '-';
+              const votosStr = e.votos > 0 ? e.votos.toLocaleString('pt-BR') : '-';
+              const isWinner = row.vencedor === e.candidato;
+              bodyHtml += `<td style="text-align:right;${isWinner ? 'font-weight:bold;color:' + e.cor + ';' : ''}">${votosStr}<br><span style="font-size:9px;">${pctStr}</span></td>`;
+          });
+          bodyHtml += `<td class="vencedor-cell" style="color:${row.corVencedor || '#999'};">${row.vencedor ? row.vencedor.substring(0, 15) : '-'}</td>`;
+          bodyHtml += '</tr>';
+      });
+
+      tbody.innerHTML = bodyHtml;
+      container.classList.add('visible');
+  }
+
+  function compSortTable(colIdx) {
+      if (compSortCol === colIdx) {
+          compSortAsc = !compSortAsc;
+      } else {
+          compSortCol = colIdx;
+          compSortAsc = colIdx <= 1; // asc for # and name, desc for votes
+      }
+      renderizarTabelaComparacao();
+  }
+
+  function compSortRows(rows) {
+      rows.sort((a, b) => {
+          let va, vb;
+          if (compSortCol === 0) { // Index - by total votes desc
+              va = a.totalMun; vb = b.totalMun;
+          } else if (compSortCol === 1) { // Municipality name
+              va = a.nmMun; vb = b.nmMun;
+              return compSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+          } else if (compSortCol >= 2 && compSortCol < 2 + dadosComparacao.length) {
+              const candIdx = compSortCol - 2;
+              va = a.entries[candIdx] ? a.entries[candIdx].votos : 0;
+              vb = b.entries[candIdx] ? b.entries[candIdx].votos : 0;
+          } else { // Winner column
+              va = a.vencedor || ''; vb = b.vencedor || '';
+              return compSortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+          }
+          return compSortAsc ? va - vb : vb - va;
+      });
+  }
+
+  // ============================================
+  // COMPARISON LEGEND
+  // ============================================
+  function mostrarLegendaComparacao() {
+      const container = document.getElementById('legenda-comp-items');
+      container.innerHTML = dadosComparacao.map(c =>
+          `<div class="legenda-comp-item">
+              <div class="legenda-comp-cor" style="background: ${c.cor};"></div>
+              <span class="legenda-comp-nome">${c.candidato} (${c.ano})</span>
+          </div>`
+      ).join('');
+      document.getElementById('legenda-comparacao').classList.add('visible');
+  }
+
+  function esconderLegendaComparacao() {
+      document.getElementById('legenda-comparacao').classList.remove('visible');
+  }
+
+  // ============================================
+  // CITY-LEVEL COMPARISON (click municipality)
+  // ============================================
+  function setupCompClickHandler() {
+      if (typeof map === 'undefined') { setTimeout(setupCompClickHandler, 1000); return; }
+      map.on('singleclick', function(evt) {
+          if (!compModoAtivo) return;
+          map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+              if (layer === lyr_RS_Municipios_2023_3) {
+                  const nmMun = (feature.get('NM_MUN') || '').toUpperCase().trim();
+                  if (nmMun && compMunicipiosMerge[nmMun]) {
+                      abrirCompCidade(nmMun);
+                  }
+                  return true;
+              }
+          }, { hitTolerance: 5 });
+      });
+  }
+  setTimeout(setupCompClickHandler, 2500);
+
+  function abrirCompCidade(nmMun) {
+      const data = compMunicipiosMerge[nmMun];
+      if (!data) return;
+
+      document.getElementById('comp-cidade-label').textContent = nmMun;
+      const sidebar = document.getElementById('sidebar-comparacao-cidade');
+      sidebar.style.display = 'block';
+
+      // Bar chart
+      const barras = document.getElementById('comp-cidade-barras');
+      const maxVotos = Math.max(...data.entries.map(e => e.votos), 1);
+      barras.innerHTML = data.entries.map(e => {
+          const altura = Math.max((e.votos / maxVotos) * 140, 5);
+          const votosStr = e.votos.toLocaleString('pt-BR');
+          const pctStr = e.pct.toFixed(1) + '%';
+          const nomeExibir = e.candidato.length > 18 ? e.candidato.substring(0, 15) + '...' : e.candidato;
+          return `
+              <div class="barra-item" title="${e.candidato}: ${votosStr} votos (${pctStr})">
+                  <div class="barra-valor">${votosStr}<br><span style="font-size:9px;color:${e.cor};">${pctStr}</span></div>
+                  <div class="barra" style="height: ${altura}px; background: linear-gradient(180deg, ${e.cor} 0%, ${adjustColor(e.cor, -30)} 100%);"></div>
+                  <div class="barra-nome">${nomeExibir}</div>
+              </div>`;
+      }).join('');
+
+      // Detail table per voting location
+      const thead = document.getElementById('comp-cidade-thead');
+      let thHtml = '<tr><th>Local de Votação</th>';
+      dadosComparacao.forEach(c => {
+          const label = c.candidato.length > 12 ? c.candidato.substring(0, 10) + '...' : c.candidato;
+          thHtml += `<th style="color:${c.cor};" title="${c.candidato}">${label}</th>`;
+      });
+      thHtml += '</tr>';
+      thead.innerHTML = thHtml;
+
+      // Build per-location rows
+      const locaisMerge = {};
+      dadosCompLocais.forEach((cData, cIdx) => {
+          cData.dados
+              .filter(d => (d.nm_municipio || '').toUpperCase().trim() === nmMun)
+              .forEach(d => {
+                  const key = d.nm_local_votacao || d.id_local;
+                  if (!locaisMerge[key]) {
+                      locaisMerge[key] = { nome: d.nm_local_votacao || d.id_local, votos: new Array(dadosComparacao.length).fill(0) };
+                  }
+                  locaisMerge[key].votos[cIdx] += d.qt_votos;
+              });
+      });
+
+      const locaisArr = Object.values(locaisMerge).sort((a, b) => {
+          const totalA = a.votos.reduce((s, v) => s + v, 0);
+          const totalB = b.votos.reduce((s, v) => s + v, 0);
+          return totalB - totalA;
+      });
+
+      const tbody = document.getElementById('comp-cidade-tbody');
+      tbody.innerHTML = locaisArr.map(loc => {
+          let row = `<tr><td>${loc.nome}</td>`;
+          const maxLocal = Math.max(...loc.votos, 1);
+          loc.votos.forEach((v, i) => {
+              const isMax = v === maxLocal && v > 0;
+              row += `<td style="text-align:right;${isMax ? 'font-weight:bold;color:' + dadosComparacao[i].cor + ';' : ''}">${v > 0 ? v.toLocaleString('pt-BR') : '-'}</td>`;
+          });
+          row += '</tr>';
+          return row;
+      }).join('');
+  }
+
+  // Helper to darken a hex color
+  function adjustColor(hex, amount) {
+      hex = hex.replace('#', '');
+      const r = Math.max(0, Math.min(255, parseInt(hex.substring(0, 2), 16) + amount));
+      const g = Math.max(0, Math.min(255, parseInt(hex.substring(2, 4), 16) + amount));
+      const b = Math.max(0, Math.min(255, parseInt(hex.substring(4, 6), 16) + amount));
+      return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+  }
+
+  // ============================================
+  // LIMPAR COMPARAÇÃO
+  // ============================================
+  function limparComparacao() {
+      compModoAtivo = false;
+      dadosComparacao = [];
+      dadosCompLocais = [];
+      compMunicipiosMerge = {};
+
+      // Restore original municipality style
+      if (styleComparacaoOriginal) {
+          lyr_RS_Municipios_2023_3.setStyle(styleComparacaoOriginal);
+          lyr_RS_Municipios_2023_3.changed();
+      }
+
+      // Hide elements
+      document.getElementById('tabela-comparacao-estado').classList.remove('visible');
+      document.getElementById('comp-thead').innerHTML = '';
+      document.getElementById('comp-tbody').innerHTML = '';
+      document.getElementById('sidebar-comparacao-cidade').style.display = 'none';
+      esconderLegendaComparacao();
+      document.getElementById('btn-exportar-comparacao-pdf').style.display = 'none';
+      document.getElementById('comparacao-status').innerHTML = '';
+
+      // Clear inputs
+      for (let i = 0; i < 3; i++) {
+          document.getElementById('comp-input-' + i).value = '';
+      }
+  }
+
+  // ============================================
+  // COMPARISON PDF EXPORT
+  // ============================================
+  function renderizarMapaCoroplethPDF(largura, altura) {
+      if (!largura) largura = 900;
+      if (!altura) altura = 700;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = largura;
+      canvas.height = altura;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#f0f4f8';
+      ctx.fillRect(0, 0, largura, altura);
+
+      const allFeatures = lyr_RS_Municipios_2023_3.getSource().getFeatures();
+      if (allFeatures.length === 0) return null;
+
+      const viewExtent = lyr_RS_Municipios_2023_3.getSource().getExtent();
+      let vW = viewExtent[2] - viewExtent[0];
+      let vH = viewExtent[3] - viewExtent[1];
+      const padding = 0.05;
+      const padViewExtent = [
+          viewExtent[0] - vW * padding, viewExtent[1] - vH * padding,
+          viewExtent[2] + vW * padding, viewExtent[3] + vH * padding
+      ];
+      vW = padViewExtent[2] - padViewExtent[0];
+      vH = padViewExtent[3] - padViewExtent[1];
+
+      const scaleX = largura / vW;
+      const scaleY = altura / vH;
+      const scale = Math.min(scaleX, scaleY);
+      const offsetX = (largura - vW * scale) / 2;
+      const offsetY = (altura - vH * scale) / 2;
+
+      function toPixel(x, y) {
+          return [offsetX + (x - padViewExtent[0]) * scale, offsetY + (padViewExtent[3] - y) * scale];
+      }
+
+      // Draw each municipality with winner color
+      allFeatures.forEach(feat => {
+          const nmMun = (feat.get('NM_MUN') || '').toUpperCase().trim();
+          const data = compMunicipiosMerge[nmMun];
+
+          if (data && data.corVencedorRgba && data.totalMun > 0) {
+              const opacity = 0.3 + data.margin * 0.5;
+              const rgb = data.corVencedorRgba;
+              ctx.fillStyle = `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${opacity.toFixed(2)})`;
+              ctx.strokeStyle = data.corVencedor;
+          } else {
+              ctx.fillStyle = 'rgba(220, 220, 220, 0.3)';
+              ctx.strokeStyle = 'rgba(0, 200, 220, 0.4)';
+          }
+          ctx.lineWidth = 0.5;
+
+          const geom = feat.getGeometry();
+          const coordsArrays = [];
+          if (geom.getType() === 'MultiPolygon') {
+              geom.getPolygons().forEach(p => coordsArrays.push(p.getLinearRing(0).getCoordinates()));
+          } else if (geom.getType() === 'Polygon') {
+              coordsArrays.push(geom.getLinearRing(0).getCoordinates());
+          }
+          coordsArrays.forEach(coords => {
+              ctx.beginPath();
+              coords.forEach((c, i) => {
+                  const px = toPixel(c[0], c[1]);
+                  if (i === 0) ctx.moveTo(px[0], px[1]); else ctx.lineTo(px[0], px[1]);
+              });
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+          });
+      });
+
+      // Title
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.font = 'bold 16px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Rio Grande do Sul — Comparação de Candidatos', largura / 2, 22);
+
+      // Legend
+      const legX = largura - 200;
+      let legY = altura - 20 - dadosComparacao.length * 18;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillRect(legX - 5, legY - 5, 195, dadosComparacao.length * 18 + 10);
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(legX - 5, legY - 5, 195, dadosComparacao.length * 18 + 10);
+
+      dadosComparacao.forEach((c, i) => {
+          ctx.fillStyle = c.cor;
+          ctx.fillRect(legX, legY + i * 18, 14, 12);
+          ctx.fillStyle = '#333';
+          ctx.font = '10px sans-serif';
+          ctx.textAlign = 'left';
+          const label = c.candidato.length > 25 ? c.candidato.substring(0, 22) + '...' : c.candidato;
+          ctx.fillText(`${label} (${c.ano})`, legX + 18, legY + i * 18 + 10);
+      });
+
+      return canvas.toDataURL('image/png');
+  }
+
+  async function exportarComparacaoPDF() {
+      if (dadosComparacao.length < 2) {
+          alert('Gere uma comparação antes de exportar.');
+          return;
+      }
+
+      const statusEl = document.getElementById('comparacao-status');
+      const btnPdf = document.getElementById('btn-exportar-comparacao-pdf');
+      btnPdf.disabled = true;
+      statusEl.innerHTML = '⏳ Preparando PDF de comparação...';
+      statusEl.style.color = '#3498db';
+
+      try {
+          const cargo = document.getElementById('comp-cargo').value;
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF('p', 'mm', 'a4');
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const margin = 15;
+          let yPos = margin;
+
+          // --- Header ---
+          doc.setFillColor(142, 68, 173);
+          doc.rect(0, 0, pageWidth, 38, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(16);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Comparacao de Candidatos', pageWidth / 2, 14, { align: 'center' });
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'normal');
+          doc.text('Cargo: ' + cargo + ' — Rio Grande do Sul', pageWidth / 2, 22, { align: 'center' });
+          doc.setFontSize(9);
+          doc.text('Gerado em: ' + new Date().toLocaleDateString('pt-BR') + ' as ' + new Date().toLocaleTimeString('pt-BR'), pageWidth / 2, 30, { align: 'center' });
+
+          // Candidate legend
+          yPos = 42;
+          dadosComparacao.forEach((c, i) => {
+              doc.setFillColor(c.corRgba[0], c.corRgba[1], c.corRgba[2]);
+              doc.rect(margin, yPos + i * 7, 4, 4, 'F');
+              doc.setTextColor(44, 62, 80);
+              doc.setFontSize(10);
+              doc.setFont('helvetica', 'bold');
+              doc.text(c.candidato + ' (' + c.ano + ', Turno ' + (c.turno || 'Todos') + ') — ' + c.totalVotos.toLocaleString('pt-BR') + ' votos', margin + 6, yPos + i * 7 + 3.5);
+          });
+          yPos += dadosComparacao.length * 7 + 8;
+
+          // --- Choropleth Map ---
+          statusEl.innerHTML = '⏳ Renderizando mapa...';
+          let imgData = null;
+          try { imgData = renderizarMapaCoroplethPDF(900, 700); } catch (e) { console.warn('Mapa erro:', e); }
+
+          if (imgData) {
+              doc.setTextColor(44, 62, 80);
+              doc.setFontSize(11);
+              doc.setFont('helvetica', 'bold');
+              doc.text('Mapa de Comparacao — Vencedor por Municipio', margin, yPos);
+              yPos += 5;
+              const imgWidth = pageWidth - 2 * margin;
+              const imgHeight = imgWidth * 0.55;
+              if (yPos + imgHeight > pageHeight - 20) { doc.addPage(); yPos = margin; }
+              doc.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight);
+              doc.setDrawColor(200, 200, 200);
+              doc.rect(margin, yPos, imgWidth, imgHeight, 'S');
+              yPos += imgHeight + 8;
+          }
+
+          // --- State Summary Table ---
+          if (yPos > pageHeight - 40) { doc.addPage(); yPos = margin; }
+          doc.setTextColor(44, 62, 80);
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text('Resumo por Municipio', margin, yPos);
+          yPos += 3;
+
+          // Build table data sorted by total votes
+          const rows = Object.entries(compMunicipiosMerge)
+              .filter(([_, d]) => d.totalMun > 0)
+              .sort((a, b) => b[1].totalMun - a[1].totalMun)
+              .map(([nmMun, d], idx) => {
+                  const row = [(idx + 1).toString(), nmMun];
+                  d.entries.forEach(e => {
+                      const pctStr = e.pct > 0 ? e.pct.toFixed(1) + '%' : '-';
+                      row.push(e.votos > 0 ? e.votos.toLocaleString('pt-BR') + '\n' + pctStr : '-');
+                  });
+                  row.push(d.vencedor ? d.vencedor.substring(0, 20) : '-');
+                  return row;
+              });
+
+          // Summary row
+          const summaryRow = ['', 'TOTAL ESTADO'];
+          dadosComparacao.forEach(c => {
+              const total = c.totalVotos;
+              const grandTotal = dadosComparacao.reduce((s, x) => s + x.totalVotos, 0);
+              const pct = grandTotal > 0 ? (total / grandTotal * 100).toFixed(1) + '%' : '-';
+              summaryRow.push(total.toLocaleString('pt-BR') + '\n' + pct);
+          });
+          const winner = dadosComparacao.reduce((best, c) => c.totalVotos > best.totalVotos ? c : best, dadosComparacao[0]);
+          summaryRow.push(winner.candidato.substring(0, 20));
+
+          const headCols = ['#', 'Municipio'];
+          dadosComparacao.forEach(c => { headCols.push(c.candidato.substring(0, 15) + '\n(' + c.ano + ')'); });
+          headCols.push('Vencedor');
+
+          doc.autoTable({
+              startY: yPos,
+              head: [headCols],
+              body: [summaryRow, ...rows],
+              margin: { left: margin, right: margin },
+              styles: { fontSize: 6, cellPadding: 1.5, lineColor: [200, 200, 200], lineWidth: 0.2, overflow: 'linebreak' },
+              headStyles: { fillColor: [142, 68, 173], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 7 },
+              alternateRowStyles: { fillColor: [250, 250, 250] },
+              columnStyles: {
+                  0: { cellWidth: 8, halign: 'center' },
+                  1: { cellWidth: 'auto' }
+              },
+              didParseCell: function(hookData) {
+                  // Highlight summary row
+                  if (hookData.row.index === 0 && hookData.section === 'body') {
+                      hookData.cell.styles.fillColor = [240, 230, 246];
+                      hookData.cell.styles.fontStyle = 'bold';
+                  }
+              },
+              didDrawPage: function() {
+                  doc.setFontSize(7);
+                  doc.setTextColor(150);
+                  doc.text('Mapa Eleitoral RS — Comparacao — Pagina ' + doc.internal.getCurrentPageInfo().pageNumber,
+                      pageWidth / 2, pageHeight - 8, { align: 'center' });
+              }
+          });
+
+          // --- Footer ---
+          const totalPages = doc.internal.getNumberOfPages();
+          for (let i = 1; i <= totalPages; i++) {
+              doc.setPage(i);
+              doc.setFontSize(7);
+              doc.setTextColor(150);
+              doc.text('Mapa Eleitoral RS — Comparacao — Pagina ' + i + ' de ' + totalPages,
+                  pageWidth / 2, pageHeight - 8, { align: 'center' });
+          }
+
+          const nomeArquivo = 'comparacao_' + cargo.replace(/\s+/g, '_') + '_' +
+              dadosComparacao.map(c => c.candidato.split(' ')[0]).join('_vs_') + '.pdf';
+          doc.save(nomeArquivo);
+
+          statusEl.innerHTML = '✅ PDF de comparação exportado!';
+          statusEl.style.color = '#27ae60';
+      } catch (err) {
+          console.error('Erro PDF comparação:', err);
+          statusEl.innerHTML = '❌ Erro: ' + err.message;
+          statusEl.style.color = '#e74c3c';
+      } finally {
+          btnPdf.disabled = false;
       }
   }
 </script>
