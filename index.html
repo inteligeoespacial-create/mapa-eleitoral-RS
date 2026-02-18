@@ -4202,8 +4202,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
       // Summary row first
       let bodyHtml = `<tr class="comp-summary-row"><td></td><td><strong>TOTAL ESTADO</strong></td>`;
       dadosComparacao.forEach(c => {
-          const pct = summaryTotal > 0 ? (c.totalVotos / summaryTotal * 100).toFixed(1) : '0.0';
-          bodyHtml += `<td style="text-align:right;"><strong>${c.totalVotos.toLocaleString('pt-BR')}</strong><br><span style="font-size:9px;color:${c.cor};">${pct}%</span></td>`;
+          bodyHtml += `<td style="text-align:right;"><strong>${c.totalVotos.toLocaleString('pt-BR')}</strong></td>`;
       });
       bodyHtml += `<td class="vencedor-cell" style="color:${summaryWinner.cor};">${summaryWinner.candidato.substring(0, 15)}</td></tr>`;
 
@@ -4212,10 +4211,9 @@ th { background-color: #f8f8f8; font-weight: bold; }
           bodyHtml += `<tr style="cursor:pointer;" onclick="abrirCompCidade('${row.nmMun.replace(/'/g, "\\'")}')" title="Clique para ver detalhes">`;
           bodyHtml += `<td>${idx + 1}</td><td>${row.nmMun}</td>`;
           row.entries.forEach(e => {
-              const pctStr = e.pct > 0 ? e.pct.toFixed(1) + '%' : '-';
               const votosStr = e.votos > 0 ? e.votos.toLocaleString('pt-BR') : '-';
               const isWinner = row.vencedor === e.candidato;
-              bodyHtml += `<td style="text-align:right;${isWinner ? 'font-weight:bold;color:' + e.cor + ';' : ''}">${votosStr}<br><span style="font-size:9px;">${pctStr}</span></td>`;
+              bodyHtml += `<td style="text-align:right;${isWinner ? 'font-weight:bold;color:' + e.cor + ';' : ''}">${votosStr}</td>`;
           });
           bodyHtml += `<td class="vencedor-cell" style="color:${row.corVencedor || '#999'};">${row.vencedor ? row.vencedor.substring(0, 15) : '-'}</td>`;
           bodyHtml += '</tr>';
@@ -4307,11 +4305,10 @@ th { background-color: #f8f8f8; font-weight: bold; }
       barras.innerHTML = data.entries.map(e => {
           const altura = Math.max((e.votos / maxVotos) * 140, 5);
           const votosStr = e.votos.toLocaleString('pt-BR');
-          const pctStr = e.pct.toFixed(1) + '%';
           const nomeExibir = e.candidato.length > 18 ? e.candidato.substring(0, 15) + '...' : e.candidato;
           return `
-              <div class="barra-item" title="${e.candidato}: ${votosStr} votos (${pctStr})">
-                  <div class="barra-valor">${votosStr}<br><span style="font-size:9px;color:${e.cor};">${pctStr}</span></div>
+              <div class="barra-item" title="${e.candidato}: ${votosStr} votos">
+                  <div class="barra-valor" style="color:${e.cor};">${votosStr}</div>
                   <div class="barra" style="height: ${altura}px; background: linear-gradient(180deg, ${e.cor} 0%, ${adjustColor(e.cor, -30)} 100%);"></div>
                   <div class="barra-nome">${nomeExibir}</div>
               </div>`;
@@ -4582,8 +4579,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
               .map(([nmMun, d], idx) => {
                   const row = [(idx + 1).toString(), nmMun];
                   d.entries.forEach(e => {
-                      const pctStr = e.pct > 0 ? e.pct.toFixed(1) + '%' : '-';
-                      row.push(e.votos > 0 ? e.votos.toLocaleString('pt-BR') + '\n' + pctStr : '-');
+                      row.push(e.votos > 0 ? e.votos.toLocaleString('pt-BR') : '-');
                   });
                   row.push(d.vencedor ? d.vencedor.substring(0, 20) : '-');
                   return row;
@@ -4592,10 +4588,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
           // Summary row
           const summaryRow = ['', 'TOTAL ESTADO'];
           dadosComparacao.forEach(c => {
-              const total = c.totalVotos;
-              const grandTotal = dadosComparacao.reduce((s, x) => s + x.totalVotos, 0);
-              const pct = grandTotal > 0 ? (total / grandTotal * 100).toFixed(1) + '%' : '-';
-              summaryRow.push(total.toLocaleString('pt-BR') + '\n' + pct);
+              summaryRow.push(c.totalVotos.toLocaleString('pt-BR'));
           });
           const winner = dadosComparacao.reduce((best, c) => c.totalVotos > best.totalVotos ? c : best, dadosComparacao[0]);
           summaryRow.push(winner.candidato.substring(0, 20));
