@@ -758,6 +758,17 @@ th { background-color: #f8f8f8; font-weight: bold; }
    * @returns {string} Nome da tabela/view no Supabase
    */
   function getTabelaPorAno(tipo, ano) {
+      // Para 2022, as views já existem sem sufixo de ano (originais do projeto).
+      // Para outros anos (2018, 2020, 2024), as views possuem sufixo _XXXX.
+      if (String(ano) === '2022') {
+          const tabelas2022 = {
+              'processada': 'votos_2022_processada',
+              'votos_por_local': 'votos_por_local',
+              'candidatos_distintos': 'candidatos_distintos',
+              'resumo_votos_municipio': 'resumo_votos_municipio'
+          };
+          return tabelas2022[tipo] || tipo;
+      }
       const tabelas = {
           'processada': `votos_${ano}_processada`,
           'votos_por_local': `votos_por_local_${ano}`,
@@ -765,6 +776,19 @@ th { background-color: #f8f8f8; font-weight: bold; }
           'resumo_votos_municipio': `resumo_votos_municipio_${ano}`
       };
       return tabelas[tipo] || tipo;
+  }
+
+  // Normaliza o valor do cargo conforme o formato do ano selecionado.
+  // 2022: UPPERCASE ("DEPUTADO FEDERAL"), 2018: Title Case ("Deputado Federal")
+  function normalizarCargo(cargo, ano) {
+      if (!cargo) return cargo;
+      const anoNum = parseInt(ano);
+      // 2018 usa Title Case no ds_cargo
+      if (anoNum === 2018) {
+          return cargo.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+      }
+      // 2022 e demais usam UPPERCASE
+      return cargo.toUpperCase();
   }
 
   // Cargos disponíveis por tipo de eleição
@@ -1110,15 +1134,12 @@ th { background-color: #f8f8f8; font-weight: bold; }
                   .select('id_local, qt_votos, nm_local_votacao, nm_municipio, nr_turno, ds_cargo, ano_eleicao')
                   .eq('nm_votavel', nomeUpper);
 
-              // Aplica filtros adicionais
-              if (anoEleicao) {
-                  query = query.eq('ano_eleicao', anoEleicao);
-              }
+              // Aplica filtros adicionais (ano já filtrado pela view)
               if (turno) {
                   query = query.eq('nr_turno', turno);
               }
               if (cargo) {
-                  query = query.eq('ds_cargo', cargo);
+                  query = query.eq('ds_cargo', normalizarCargo(cargo, anoEleicao));
               }
 
               // Aplica paginação
@@ -1130,7 +1151,7 @@ th { background-color: #f8f8f8; font-weight: bold; }
                   console.error('Erro ao buscar votos:', error);
                   
                   if (error.message.includes('timeout')) {
-                      statusEl.innerHTML = `<span style="color:#e74c3c">Timeout!</span> Crie a MATERIALIZED VIEW votos_por_local com índice.`;
+                      statusEl.innerHTML = `<span style="color:#e74c3c">Timeout!</span> Crie a MATERIALIZED VIEW <strong>${tabelaVotosLocal}</strong> com índice em nm_votavel.`;
                   } else {
                       statusEl.innerText = `Erro: ${error.message}`;
                   }
@@ -2288,25 +2309,16 @@ th { background-color: #f8f8f8; font-weight: bold; }
           const turno = document.getElementById('filtroTurno').value;
           const cargo = document.getElementById('filtroCargo').value;
 
-          // Busca nomes distintos de candidatos - usa a view ou tabela com limite
+          // Busca nomes distintos de candidatos - usa a view por ano
+          // NOTA: A view candidatos_distintos contém apenas a coluna nm_votavel,
+          // portanto NÃO aplicamos filtros de ano_eleicao, nr_turno ou ds_cargo aqui.
+          // A separação por ano já é feita pela própria view.
           const tabelaCandidatos = getTabelaPorAno('candidatos_distintos', anoEleicao);
           let query = supabaseClient
-              .from(tabelaCandidatos) // View dinâmica por ano: candidatos_distintos_XXXX
+              .from(tabelaCandidatos)
               .select('nm_votavel')
-              .ilike('nm_votavel', `%${termo}%`);
-
-          // Aplica filtros se a view tiver essas colunas
-          if (anoEleicao) {
-              query = query.eq('ano_eleicao', anoEleicao);
-          }
-          if (turno) {
-              query = query.eq('nr_turno', turno);
-          }
-          if (cargo) {
-              query = query.eq('ds_cargo', cargo);
-          }
-
-          query = query.limit(15);
+              .ilike('nm_votavel', `%${termo}%`)
+              .limit(15);
 
           const { data, error } = await query;
 
@@ -2435,15 +2447,12 @@ th { background-color: #f8f8f8; font-weight: bold; }
               .select('nm_votavel, total_votos')
               .eq('nm_municipio', nomeMun);
 
-          // Aplica filtros se a view tiver essas colunas
-          if (anoEleicao) {
-              query = query.eq('ano_eleicao', anoEleicao);
-          }
+          // Aplica filtros adicionais (ano já filtrado pela view)
           if (turno) {
               query = query.eq('nr_turno', turno);
           }
           if (cargo) {
-              query = query.eq('ds_cargo', cargo);
+              query = query.eq('ds_cargo', normalizarCargo(cargo, anoEleicao));
           }
 
           query = query.order('total_votos', { ascending: false }).limit(50); // Limita a 50 candidatos para acelerar
